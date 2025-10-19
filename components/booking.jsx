@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { PassengerSelectionModal } from '../components/PassengerSelectionModal';
 
 // Mock Data
 const PORTS = [
@@ -52,13 +53,15 @@ const BookingScreen = () => {
   const [fromPort, setFromPort] = useState(null);
   const [toPort, setToPort] = useState(null);
   const [travelDate, setTravelDate] = useState(new Date());
-  const [passengers, setPassengers] = useState(1);
+  const [passengers, setPassengers] = useState({ adult: 1, child: 0, infant: 0 });
+  const [isPassengerModalVisible, setPassengerModalVisible] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
-
   const [isPortModalVisible, setPortModalVisible] = useState(false);
   const [isClassModalVisible, setClassModalVisible] = useState(false);
-  const [portSelectorMode, setPortSelectorMode] = useState('from'); 
+  const [portSelectorMode, setPortSelectorMode] = useState('from');
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const totalPassengers = passengers.adult + passengers.child + passengers.infant;
 
   const handleSwitchPorts = () => {
     const temp = fromPort;
@@ -108,7 +111,6 @@ const BookingScreen = () => {
         style={styles.topBackgroundImage}
       />
       
-      {/* Header Content */}
       <View style={styles.headerContent}>
         <Text style={styles.headerTitle}>
             Let's book{'\n'} 
@@ -129,7 +131,6 @@ const BookingScreen = () => {
         </View>
       </View>
 
-      {/* The ScrollView for the card content */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.card}>
           <View style={styles.toggleGroup}>
@@ -180,9 +181,11 @@ const BookingScreen = () => {
           </View>
           <View style={styles.row}>
             <View style={[styles.inputFieldContainer, { flex: 1, marginRight: 8 }]}>
-              <TouchableOpacity style={styles.inputButton} onPress={() => alert('Passenger selection UI would open here.')}>
+              <TouchableOpacity style={styles.inputButton} onPress={() => setPassengerModalVisible(true)}>
                 <Image source={require('../assets/images/passengers-icon.png')} style={styles.inputIcon} />
-                <Text style={styles.placeholderText}>Add</Text>
+                <Text style={styles.placeholderText}>
+                  {totalPassengers} Passenger{totalPassengers > 1 ? 's' : ''}
+                </Text>
                 <View style={styles.labelContainer}>
                   <Text style={styles.labelText}>Passengers</Text>
                 </View>
@@ -204,7 +207,6 @@ const BookingScreen = () => {
         </View>
       </ScrollView>
 
-      {/* Bottom Navigation */}
       <View style={styles.navigation}>
         {navigationItems.map((item) => (
           <TouchableOpacity
@@ -225,7 +227,6 @@ const BookingScreen = () => {
         ))}
       </View>
 
-      {/* Modals */}
       <Modal visible={isPortModalVisible} transparent={true} animationType="fade">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -285,6 +286,16 @@ const BookingScreen = () => {
           onChange={onDateChange}
         />
       )}
+
+      <PassengerSelectionModal
+        visible={isPassengerModalVisible}
+        onClose={() => setPassengerModalVisible(false)}
+        onConfirm={(newCounts) => {
+            setPassengers(newCounts);
+            setPassengerModalVisible(false);
+        }}
+        initialCounts={passengers}
+      />
     </SafeAreaView>
   );
 };
@@ -335,7 +346,7 @@ const styles = StyleSheet.create({
       height: 48,
     },
     scrollContent: {
-      paddingTop: 50, //move the card UP
+      paddingTop: 50,
       paddingBottom: 100,
     },
     card: {
@@ -420,8 +431,8 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 131,
         right: 24,
-        width: 104,
-        height: 104,
+        width: 70,
+        height: 64,
         borderRadius: 52,
         backgroundColor: '#6291e8',
         justifyContent: 'center',
@@ -434,8 +445,8 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     swapIcon: {
-        width: 24,
-        height: 24,
+        width: 116,
+        height: 116,
     },
     row: {
         flexDirection: 'row',
