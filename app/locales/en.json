@@ -1,0 +1,49 @@
+{
+  "booking": {
+    "title": "Let's book\nyour next trip",
+    "oneWay": "One-Way",
+    "roundTrip": "Round Trip",
+    "from": "From",
+    "to": "To",
+    "selectPort": "Select Port",
+    "travelDate": "Travel Date",
+    "pickDate": "Pick Date",
+    "passengers": "Passengers",
+    "passenger": "Passenger",
+    "passengers_plural": "Passengers",
+    "class": "Class",
+    "classEconomy": "Economy",
+    "classBusiness": "Business",
+    "classFirst": "First Class",
+    "select": "Select",
+    "search": "Search",
+    "missingInfo": "Missing Information",
+    "missingInfoMessage": "Please select all fields before searching."
+  },
+  "searchResults": {
+    "title": "Search Results",
+    "availableVessels": "Available Vessels",
+    "estPrice": "Est. Price",
+    "pax": "/pax",
+    "departure": "Departure",
+    "arrival": "Arrival"
+  },
+  "passenger": {
+    "modalTitle": "Number of Passengers",
+    "adult": "Adult",
+    "child": "Child",
+    "infant": "Infant",
+    "adultAge": "+12 years",
+    "childAge": "2-11 years",
+    "infantAge": "0-2 years"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "ok": "OK"
+  },
+  "navigation": {
+    "home": "Home",
+    "tickets": "Tickets",
+    "manage": "Manage"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "booking": {
+    "title": "دعنا نحجز\nرحلتك القادمة",
+    "oneWay": "ذهاب فقط",
+    "roundTrip": "ذهاب وعودة",
+    "from": "من",
+    "to": "إلى",
+    "selectPort": "اختر الميناء",
+    "travelDate": "تاريخ السفر",
+    "pickDate": "اختر التاريخ",
+    "passengers": "الركاب",
+    "passenger": "راكب",
+    "passengers_plural": "ركاب",
+    "class": "الدرجة",
+    "classEconomy": "اقتصادية",
+    "classBusiness": "أعمال",
+    "classFirst": "الدرجة الأولى",
+    "select": "اختر",
+    "search": "بحث",
+    "missingInfo": "معلومات ناقصة",
+    "missingInfoMessage": "يرجى تحديد جميع الحقول قبل البحث."
+  },
+  "searchResults": {
+    "title": "نتائج البحث",
+    "availableVessels": "السفن المتاحة",
+    "estPrice": "السعر التقديري",
+    "pax": "/للشخص",
+    "departure": "المغادرة",
+    "arrival": "الوصول"
+  },
+  "passenger": {
+    "modalTitle": "عدد الركاب",
+    "adult": "بالغ",
+    "child": "طفل",
+    "infant": "رضيع",
+    "adultAge": "+١٢ سنة",
+    "childAge": "٢-١١ سنة",
+    "infantAge": "٠-٢ سنة"
+  },
+  "common": {
+    "cancel": "إلغاء",
+    "ok": "موافق"
+  },
+  "navigation": {
+    "home": "الرئيسية",
+    "tickets": "التذاكر",
+    "manage": "إدارة"
+  }
+}
