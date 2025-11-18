@@ -29,15 +29,16 @@ const VesselDetailsScreen = ({ route }) => {
   ];
 
   const handleBookVessel = () => {
-    router.push('/reservation');
+    router.push({pathname:'/reservation', params: params});
   };
 
   const vessel = {
     vesselName: params.vesselName,
-    price: params.price,
-    departureDate: params.departureDate,
+    price: params.estimatedCost,
+    currency: params.currencyPrint,
+    departureDate: params.startDate,
     departureTime: params.departureTime,
-    arrivalDate: params.arrivalDate,
+    arrivalDate: params.endDate,
     arrivalTime: params.arrivalTime,
     duration: params.duration,
   };
@@ -65,6 +66,7 @@ const VesselDetailsScreen = ({ route }) => {
               <View style={styles.priceContainer}>
                 <Text style={styles.priceLabel}>{t('details.estPrice')}</Text>
                 <Text>
+                  <Text style={styles.priceValue}>{vessel.currency}</Text>
                   <Text style={styles.priceValue}>{vessel.price}</Text>
                   <Text style={styles.pricePax}>{t('details.pax')}</Text>
                 </Text>

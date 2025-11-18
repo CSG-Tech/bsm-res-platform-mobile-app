@@ -28,7 +28,9 @@
     "estPrice": "السعر التقديري",
     "pax": "/للشخص",
     "departure": "المغادرة",
-    "arrival": "الوصول"
+    "arrival": "الوصول",
+    "gregorian": "ميلادي",
+    "hijri": "هجري"
   },
   "passenger": {
     "modalTitle": "عدد الركاب",
@@ -85,6 +87,13 @@
     "passportIssuingDate": "تاريخ إصدار الجواز",
     "passportExpirationDate": "تاريخ انتهاء الجواز",
     "enter": "أدخل",
-    "select": "اختر"
+    "select": "اختر",
+    "visaNumber": "رقم التأشيرة",
+    "trip": "الرحلة",
+    "male": "ذكر",
+    "female": "أنثى",
+    "search": "بحث",
+    "noResults": "لم يتم العثور على نتائج",
+    "close": "إغلاق"
   }
 }

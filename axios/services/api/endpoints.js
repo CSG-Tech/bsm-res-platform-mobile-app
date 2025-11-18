@@ -6,14 +6,22 @@ export const ENDPOINTS = {
     REFRESH: '/auth/refresh',
   },
   DEGREES: {
-    GET_BY_COUNTRY: (degreeName) => `/degrees/getAllDegrees/SA?degreeName=${degreeName}`,
+    GET_BY_TRIP: (tripserial, degreeName) => 
+      `/degrees/getAllDegrees/${tripserial}?degreeName=${degreeName}`,
   },
   TRIPS: {
-    BY_LINE: (fromDate, toDate, lineCode) =>
-      `/trips/getTripsByDateAndPort/${fromDate}/${toDate}/${lineCode}`,
+    BY_LINE: (fromDate, toDate, lineCode, classId) =>
+      `/trips/getTripsByDateAndPort/${fromDate}/${toDate}/${lineCode}/${classId}`,
   },
   PORTS: {
     GET_FROM_PORTS: '/ports/get_from_ports/SA',
     GET_TO_PORTS: (fromPort) => `/ports/get_to_ports/${fromPort}`,
+  },
+  CLASSES: {
+    GET_ALL: `/classes/getAll`,
+  },
+  CONTROL: {
+    GET_NAT: (natName) =>  `/control/getAllNats?natName=${natName}`,
+    GET_VISA: (visaTypeName) => `/control/getAllVisas?visaTypeName=${visaTypeName}`,
   }
 };

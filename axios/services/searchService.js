@@ -17,29 +17,28 @@ export const getToPorts = async (fromPort) => {
   return res.data;
 };
 
-// 🔸 Get To Ports
-export const getAllDegrees = async (degreeName) => {
-  if(degreeName === undefined){
-    console.log('➡️ getAllDegrees URL:', ENDPOINTS.DEGREES.GET_BY_COUNTRY(''));
+export const getAllClasses = async (className) => {
+  if (className === undefined) {
+    console.log('➡️ getAllClasses URL:', ENDPOINTS.CLASSES.GET_ALL);
 
-    const res = await api.get(ENDPOINTS.DEGREES.GET_BY_COUNTRY(''));
-    console.log('Degrees Response:', res.data.data);
+    const res = await api.get(ENDPOINTS.CLASSES.GET_ALL);
+    console.log('Classes Response:', res.data.data);
     return res.data;
-  
-  }
-  else{
-    console.log('➡️ getAllDegrees URL:', ENDPOINTS.DEGREES.GET_BY_COUNTRY(degreeName));
+  } 
+  else {
+    console.log('➡️ getAllClasses URL:', `${ENDPOINTS.CLASSES.GET_ALL}?name=${className}`);
 
-    const res = await api.get(ENDPOINTS.DEGREES.GET_BY_COUNTRY(degreeName));
-    console.log('Degrees Response:', res.data.data);
-    return res.data;  
+    const res = await api.get(`${ENDPOINTS.CLASSES.GET_ALL}?name=${className}`);
+    console.log('Classes Response:', res.data.data);
+    return res.data;
   }
 };
 
-export const getTripsByDateAndLine = async (fromDate, toDate, lineCode) => {
-  console.log('➡️ trips URL:', ENDPOINTS.TRIPS.BY_LINE(fromDate, toDate, lineCode));
+export const getTripsByDateAndLine = async (fromDate, toDate, lineCode, classId) => {
+  console.log('➡️ trips URL:', ENDPOINTS.TRIPS.BY_LINE(fromDate, toDate, lineCode, classId)
+  );
 
-  const res = await api.get(ENDPOINTS.TRIPS.BY_LINE(fromDate, toDate, lineCode));
+  const res = await api.get(ENDPOINTS.TRIPS.BY_LINE(fromDate, toDate, lineCode, classId));
   console.log('Trips Response:', res.data.data);
   return res.data;
 };
