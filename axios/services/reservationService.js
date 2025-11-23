@@ -20,6 +20,16 @@ export const getAllDegrees = async (tripserial, degreeName) => {
   }
 };
 
+// 🔸 Get All Prices
+export const getAllPrices = async (tripserial) => {
+    console.log('➡️ getAllPrices URL:', ENDPOINTS.PRICES.GET_BY_TRIP(tripserial, 1));
+
+    const res = await api.get(ENDPOINTS.PRICES.GET_BY_TRIP(tripserial, 1));
+    console.log('Prices Response:', res.data.data);
+    return res.data;  
+  
+};
+
 // 🔸 Get All Visas
 export const getAllVisas = async (visaTypeName) => {
   if(visaTypeName === undefined){

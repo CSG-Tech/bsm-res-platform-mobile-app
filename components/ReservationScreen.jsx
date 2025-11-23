@@ -4,7 +4,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   TextInput,
@@ -13,16 +12,23 @@ import {
   Modal,
   FlatList,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  TouchableWithoutFeedback
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ChevronDown, Plus, X } from "lucide-react-native";
+import { FloatingLabelDatePicker } from "./FloatingLabelDatePicker";
 
 // API helpers - adjust paths to your project
 import {
   getAllDegrees,
   getAllVisas,
   getAllNationalities,
+  getAllPrices,
 } from "../axios/services/reservationService"; // <<— ensure this path is correct
 
 /* -------------------------------------
@@ -127,7 +133,7 @@ const FloatingLabelSelect = ({
       <TouchableOpacity style={styles.inputContainer} onPress={openSelect}>
         <Text style={[styles.inputLabel, I18nManager.isRTL ? { right: 14 } : { left: 14 }]}>{label}</Text>
         <View style={[styles.selectContent, { flexDirection: I18nManager.isRTL ? "row-reverse" : "row" }]}>
-          <Text style={styles.selectPlaceholder}>{valueLabel || placeholder}</Text>
+          <Text style={[styles.selectPlaceholder,{ color: !valueLabel ? "#b6bdcf" : "#000000" }]}>{valueLabel || placeholder}</Text>
           <ChevronDown size={24} color="#5c7095" />
         </View>
       </TouchableOpacity>
@@ -256,7 +262,7 @@ const PassengerInformationSection = ({
 -------------------------------------*/
 const TravelDetailsSection = ({ passengerDetails, onInputChange, t, tripSerial, styles }) => {
   if (!passengerDetails) return null;
-
+  const { i18n } = useTranslation();
   const genderOptions = [
     { id: "M", label: t("reservation.male") || "Male" },
     { id: "F", label: t("reservation.female") || "Female" },
@@ -301,7 +307,13 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, t, tripSerial, 
           styles={styles}
         />
 
-        <FloatingLabelInput label={t("reservation.birthdate")} placeholder="DD/MM/YYYY" value={passengerDetails.birthdate} onChangeText={(text) => onInputChange("birthdate", text)} styles={styles} />
+        <FloatingLabelDatePicker 
+          label={t("reservation.birthdate")} 
+          placeholder="DD/MM/YYYY" 
+          value={passengerDetails.birthdate} 
+          onChangeDate={(text) => onInputChange("birthdate", text)} 
+          styles={styles} 
+        />
       </View>
 
       <View style={styles.formSection}>
@@ -383,8 +395,48 @@ const ReservationScreen = () => {
   const params = useLocalSearchParams(); // gets params from previous page
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "ar";
+  const [availablePrices, setAvailablePrices] = useState([]);
+  const [loadingPrices, setLoadingPrices] = useState(false);
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
 
-  // Parse incoming trip object or fields
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => setKeyboardVisible(true)
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => setKeyboardVisible(false)
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
+
+
+  // Fetch prices when component mounts
+  useEffect(() => {
+    const fetchPrices = async () => {
+      if (!tripSerial) return;
+      
+      setLoadingPrices(true);
+      try {
+        const response = await getAllPrices(tripSerial, /* branchCode */ 1);
+        setAvailablePrices(response.data || response || []);
+        console.log('Fetched prices:', response.data || response);
+      } catch (error) {
+        console.error('Failed to fetch prices:', error);
+      } finally {
+        setLoadingPrices(false);
+      }
+    };
+    
+    fetchPrices();
+  }, [tripSerial]);
+
+  // Remove all the useMemo for prices and use this instead:
   const safeParse = (v) => {
     if (!v) return null;
     try {
@@ -425,14 +477,41 @@ const ReservationScreen = () => {
   });
 
   const [selectedPassengerId, setSelectedPassengerId] = useState(1);
-  const passengerTabs = allPassengersDetails.map((p) => ({ id: p.id, label: t("reservation.passengerLabel", { count: p.id }) }));
+  const passengerTabs = allPassengersDetails.map((p) => {
+    const fullName = [p.firstName, p.lastName].filter(Boolean).join(' ');
+    return {
+      id: p.id,
+      label: fullName || t("reservation.passengerLabel", { count: p.id })
+    };
+  });
   const currentPassengerDetails = allPassengersDetails.find((p) => p.id === selectedPassengerId);
 
   // helper to update a passenger
-  const updatePassengerField = (id, field, value) => {
-    setAllPassengersDetails((prev) => prev.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
-  };
-
+const updatePassengerField = (id, field, value) => {
+  setAllPassengersDetails((prev) => 
+    prev.map((p) => {
+      if (p.id !== id) return p;
+      
+      // If updating degree, also store its price
+      if (field === 'degree' && value) {
+        const priceObj = availablePrices.find(
+          pr => pr.degreeCode === value.oracleDegreeCode
+        );
+        
+        console.log('Setting price:', priceObj?.convertedPrice); // Debug
+        
+        return { 
+          ...p, 
+          degree: value,
+          price: priceObj?.convertedPrice || 0,
+          originalPrice: priceObj?.originalPrice || 0
+        };
+      }
+      
+      return { ...p, [field]: value };
+    })
+  );
+};
   const handleAddPassenger = () => {
     const newId = allPassengersDetails.length > 0 ? Math.max(...allPassengersDetails.map((p) => p.id)) + 1 : 1;
     setAllPassengersDetails((prev) => [...prev, createEmptyPassenger(newId)]);
@@ -461,19 +540,50 @@ const ReservationScreen = () => {
   };
 
   const stylesComputed = getStyles(isRTL);
+  // Price calculations with guards
+  const currentPassenger = allPassengersDetails?.find(p => p.id === selectedPassengerId);
+  const currentPassengerPrice = currentPassenger?.price || 0;
+
+  const totalPrice = (allPassengersDetails || []).reduce((sum, passenger) => {
+    return sum + (passenger.price || 0);
+  }, 0);
+
+  const currencyDisplay = useMemo(() => {
+    const firstPrice = availablePrices[0];
+    if (!firstPrice) return 'SAR';
+    
+    return isRTL ? firstPrice.currencyArbPrint : firstPrice.currencyPrint;
+  }, [availablePrices, isRTL]);
+  console.log('All passengers details:', allPassengersDetails);
+  console.log('Selected passenger ID:', selectedPassengerId);
+  console.log('Current passenger:', currentPassenger);
+  console.log('Current passenger price:', currentPassengerPrice);
+  console.log('Total price:', totalPrice);
+
 
   return (
     <SafeAreaView style={stylesComputed.safeArea}>
       <StatusBar barStyle="dark-content" />
-      <View style={stylesComputed.container}>
-        <View style={stylesComputed.header}>
-          <TouchableOpacity onPress={() => router.back()} style={stylesComputed.backButton}>
-            <ArrowLeft size={30} color="#000" style={I18nManager.isRTL && { transform: [{ scaleX: -1 }] }} />
-          </TouchableOpacity>
-          <Text style={stylesComputed.headerTitle}>{t("reservation.headerTitle")}</Text>
-        </View>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={0}
+      >
+        <View style={stylesComputed.container}>
+          <View style={stylesComputed.header}>
+            <TouchableOpacity onPress={() => router.back()} style={stylesComputed.backButton}>
+              <ArrowLeft size={30} color="#000" style={I18nManager.isRTL && { transform: [{ scaleX: -1 }] }} />
+            </TouchableOpacity>
+            <Text style={stylesComputed.headerTitle}>{t("reservation.headerTitle")}</Text>
+          </View>
 
-        <ScrollView contentContainerStyle={stylesComputed.scrollContent}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <ScrollView 
+              contentContainerStyle={[stylesComputed.scrollContent,
+                     !isKeyboardVisible && { paddingBottom: 200 }]}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
           <View style={stylesComputed.tripSummary}>
             <Text style={stylesComputed.tripTitle}>{incomingTrip?.tripName ?? t("reservation.trip")}</Text>
             <Text style={stylesComputed.tripSub}>{`${fromPort} → ${toPort}`}</Text>
@@ -496,14 +606,45 @@ const ReservationScreen = () => {
             tripSerial={tripSerial}
             styles={stylesComputed}
           />
-        </ScrollView>
+          </ScrollView>
+          </TouchableWithoutFeedback>
 
-        <View style={stylesComputed.footer}>
-          <TouchableOpacity style={stylesComputed.continueButton} onPress={handleContinue}>
-            <Text style={stylesComputed.continueButtonText}>{t("reservation.continue")}</Text>
+
+        {!isKeyboardVisible && (
+          <View style={stylesComputed.footer}>
+            <View style={stylesComputed.priceSection}>
+              <View style={stylesComputed.priceRow}>
+                <Text style={stylesComputed.priceLabel}>
+                  {currentPassengerDetails?.firstName && currentPassengerDetails?.lastName
+                    ? `${currentPassengerDetails.firstName} ${currentPassengerDetails.lastName}`
+                    : t("reservation.passengerLabel", { count: selectedPassengerId })}:
+                </Text>
+                <Text style={stylesComputed.priceValue}>
+                  {currentPassengerPrice.toFixed(2)} {currencyDisplay}
+                </Text>
+              </View>
+              
+              <View style={[stylesComputed.priceRow, stylesComputed.totalRow]}>
+                <Text style={stylesComputed.totalLabel}>
+                  {t("reservation.totalPrice")}:
+                </Text>
+                <Text style={stylesComputed.totalValue}>
+                  {totalPrice.toFixed(2)} {currencyDisplay}
+                </Text>
+              </View>
+          </View>
+          
+          <TouchableOpacity 
+            style={stylesComputed.continueButton} 
+            onPress={handleContinue}
+          >
+            <Text style={stylesComputed.continueButtonText}>
+              {t("reservation.continue")}
+            </Text>
           </TouchableOpacity>
-        </View>
+        </View>)}
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -526,7 +667,7 @@ const getStyles = (isRTL) =>
     },
     backButton: { position: "absolute", left: 24, bottom: 12 },
     headerTitle: { fontFamily: "Inter-Medium", fontSize: 16, color: "black" },
-    scrollContent: { paddingBottom: 140, gap: 12, paddingHorizontal: 0 },
+    scrollContent: { paddingBottom: 40, gap: 12, paddingHorizontal: 0 },
     tripSummary: { backgroundColor: "#ECF3FF", padding: 20, borderBottomLeftRadius: 12, borderBottomRightRadius: 12 },
     tripTitle: { fontSize: 18, fontFamily: "Inter-Bold", color: "#092863" },
     tripSub: { fontSize: 14, color: "#5c7095", marginTop: 6 },
@@ -559,7 +700,7 @@ const getStyles = (isRTL) =>
     inputLabel: { position: "absolute", top: -10, left: 14, backgroundColor: "white", paddingHorizontal: 8, fontFamily: "Inter-Regular", fontSize: 14, color: "#4e4e4e" },
     textInput: { fontFamily: "Inter-Regular", fontSize: 14, color: "black", height: "100%" },
     selectContent: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-    selectPlaceholder: { fontFamily: "Inter-Regular", fontSize: 14, color: "#b6bdcf" },
+    selectPlaceholder: { fontFamily: "Inter-Regular", fontSize: 14 },
 
     footer: {
       position: "absolute",
@@ -588,6 +729,54 @@ const getStyles = (isRTL) =>
     modalItem: { paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#f0f0f0" },
     modalItemText: { fontSize: 15, color: "#222" },
     modalNoResults: { padding: 20, textAlign: "center", color: "#999" },
+    footer: {
+      position: "absolute",
+      bottom: 0,
+      width: "100%",
+      paddingVertical: 16,
+      paddingBottom: 24,
+      paddingHorizontal: 24,
+      backgroundColor: "white",
+      shadowColor: "#000000",
+      shadowOffset: { width: 0, height: -12 },
+      shadowOpacity: 0.15,
+      shadowRadius: 20,
+      elevation: 24,
+      gap: 16,
+    },
+    priceSection: {
+      gap: 8,
+    },
+    priceRow: {
+      flexDirection: isRTL ? "row-reverse" : "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    priceLabel: {
+      fontFamily: "Inter-Regular",
+      fontSize: 14,
+      color: "#5c7095",
+    },
+    priceValue: {
+      fontFamily: "Inter-Medium",
+      fontSize: 14,
+      color: "#092863",
+    },
+    totalRow: {
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: "#e0e0e0",
+    },
+    totalLabel: {
+      fontFamily: "Inter-Bold",
+      fontSize: 16,
+      color: "#092863",
+    },
+    totalValue: {
+      fontFamily: "Inter-Bold",
+      fontSize: 18,
+      color: "#092863",
+    },
   });
 
 /* -------------------------------------

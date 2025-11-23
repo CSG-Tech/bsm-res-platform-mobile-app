@@ -94,6 +94,7 @@
       "female": "Female",
       "search": "Search",
       "noResults": "No results found",
-      "close": "Close"
+      "close": "Close",
+      "totalPrice": "Total Price"
     }
 }

@@ -23,5 +23,8 @@ export const ENDPOINTS = {
   CONTROL: {
     GET_NAT: (natName) =>  `/control/getAllNats?natName=${natName}`,
     GET_VISA: (visaTypeName) => `/control/getAllVisas?visaTypeName=${visaTypeName}`,
-  }
+  },
+  PRICES: {
+    GET_BY_TRIP: (tripserial, branch) => `/price-lists/prices/${tripserial}?branch=${branch}`,
+  },
 };
