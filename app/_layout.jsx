@@ -55,6 +55,9 @@ export default function RootLayout() {
       <Stack.Screen name="search-results" options={{ headerShown: false }} />
       <Stack.Screen name="vessel-details" options={{ headerShown: false }} />
       <Stack.Screen name="reservation" options={{ headerShown: false }} />
+      <Stack.Screen name="summary" options={{ headerShown: false }} />
+      <Stack.Screen name="payment" options={{ headerShown: false }} />
+      <Stack.Screen name="eticket" options={{ headerShown: false }} />
     </Stack>
   );
 }

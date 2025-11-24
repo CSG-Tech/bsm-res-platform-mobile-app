@@ -29,7 +29,7 @@ import {
   getAllVisas,
   getAllNationalities,
   getAllPrices,
-} from "../axios/services/reservationService"; // <<— ensure this path is correct
+} from "../../axios/services/reservationService"; // <<— ensure this path is correct
 
 /* -------------------------------------
    Utilities
@@ -533,10 +533,9 @@ const updatePassengerField = (id, field, value) => {
       tripSerial,
       fromPort,
       toPort,
-      travelClassId: travelClassIdFromParams,
       passengers: allPassengersDetails,
     };
-    router.push({ pathname: "/reservation-summary", params: { payload: JSON.stringify(payload) } });
+    router.push({ pathname: "/summary", params: { payload: JSON.stringify(payload) } });
   };
 
   const stylesComputed = getStyles(isRTL);
