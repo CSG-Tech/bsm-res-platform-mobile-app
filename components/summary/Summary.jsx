@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,34 +10,29 @@ import {
   I18nManager,
   Platform,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react-native';
+import { getTripSummary } from '../../axios/services/ticketService';
+import { getAllPrices } from '../../axios/services/reservationService';
 
-// --- Components ---
+const SummaryCard = ({ tripData, t }) => {
+  if (!tripData) return null;
 
-const SummaryCard = ({ vesselName, pricePerPax, fromPort, toPort, t }) => {
   return (
     <View style={styles.card}>
-      {/* Header Part */}
       <View style={styles.cardHeader}>
-        <Text style={styles.vesselName}>{vesselName || t('summary.vesselName')}</Text>
+        <Text style={styles.vesselName}>{tripData.vessel || t('summary.vesselName')}</Text>
         <View style={styles.priceContainer}>
-          <Text style={styles.estPriceLabel}>{t('summary.estPrice')}</Text>
-          <View style={styles.priceRow}>
-            <Text style={styles.priceText}>{t('summary.currency')}{pricePerPax}</Text>
-            <Text style={styles.paxText}>{t('summary.pax')}</Text>
-          </View>
+          <Text style={styles.estPriceLabel}>{tripData.tripName}</Text>
         </View>
       </View>
 
       <View style={styles.separator} />
 
-      {/* Journey Details Grid */}
       <View style={styles.journeyGrid}>
-        
-        {/* Departure (FROM) */}
         <View style={styles.journeyColumn}>
           <View style={styles.badge}>
             <Image 
@@ -51,26 +46,23 @@ const SummaryCard = ({ vesselName, pricePerPax, fromPort, toPort, t }) => {
             <Text style={styles.badgeText}>{t('summary.departure')}</Text>
           </View>
           <View style={styles.portDetails}>
-            {/* DYNAMIC FROM PORT */}
-            <Text style={styles.portName}>{fromPort}</Text>
-            <Text style={styles.dateText}>Sun, Sep 14</Text>
-            <Text style={styles.timeText}>09:00 AM</Text>
+            <Text style={styles.portName}>
+              {I18nManager.isRTL ? tripData.fromPortArab : tripData.fromPortEng}
+            </Text>
+            <Text style={styles.dateText}>
+              {new Date(tripData.startDate).toLocaleDateString()}
+            </Text>
           </View>
         </View>
 
-        {/* Center Icon (SHIP) */}
         <View style={styles.centerColumn}>
           <Image 
             source={require('../../assets/images/icons/ship-icon.png')} 
             style={styles.shipIcon}
             resizeMode="contain"
           />          
-          <View style={styles.durationContainer}>
-            <Text style={styles.durationText}>{t('summary.estDuration', { days: 5, hours: 5 })}</Text>
-          </View>
         </View>
 
-        {/* Arrival (TO) */}
         <View style={styles.journeyColumn}>
           <View style={styles.badge}>
             <Image 
@@ -84,22 +76,27 @@ const SummaryCard = ({ vesselName, pricePerPax, fromPort, toPort, t }) => {
             <Text style={styles.badgeText}>{t('summary.arrival')}</Text>
           </View>
           <View style={styles.portDetails}>
-            {/* DYNAMIC TO PORT */}
-            <Text style={styles.portName}>{toPort}</Text>
-            <Text style={styles.dateText}>Fri, Sep 18</Text>
-            <Text style={styles.timeText}>02:00 PM</Text>
+            <Text style={styles.portName}>
+              {I18nManager.isRTL ? tripData.toPortArab : tripData.toPortEng}
+            </Text>
+            <Text style={styles.dateText}>
+              {new Date(tripData.endDate).toLocaleDateString()}
+            </Text>
           </View>
         </View>
-
       </View>
     </View>
   );
 };
 
-const BookingDetailsSection = ({ passengerCount, basePrice, t }) => {
-  const taxAmount = 20.00;
-  const subtotal = (basePrice * passengerCount).toFixed(2);
-  const total = (parseFloat(subtotal) + taxAmount).toFixed(2);
+const BookingDetailsSection = ({ passengers, prices, t, i18n }) => {
+  const subtotal = passengers.reduce((sum, p) => {
+    const priceDetail = prices.find(pr => pr.degreeCode === p.degree?.oracleDegreeCode);
+    return sum + (priceDetail?.convertedPrice || 0);
+  }, 0);
+
+  const taxAmount = 0; // Adjust if needed
+  const total = subtotal + taxAmount;
 
   return (
     <View style={styles.detailsSection}>
@@ -108,32 +105,48 @@ const BookingDetailsSection = ({ passengerCount, basePrice, t }) => {
       <View style={styles.subSection}>
         <Text style={styles.subTitle}>{t('summary.passengerLabel')}</Text>
         
-        {/* Dynamic Passenger Row */}
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>
-            {t('summary.adultEconomy', { count: passengerCount })}
-          </Text>
-          <Text style={styles.rowValue}>{t('summary.currency')}{subtotal}</Text>
-        </View>
+        {passengers.map((p, idx) => {
+          const priceDetail = prices.find(pr => pr.degreeCode === p.degree?.oracleDegreeCode);
+          const passengerPrice = priceDetail?.convertedPrice || 0;
+          const degreeName = i18n.language === 'ar' 
+            ? p.degree?.degreeArabName 
+            : p.degree?.degreeEnglishName;
+          
+          return (
+            <View key={idx} style={styles.row}>
+              <Text style={styles.rowLabel}>
+                {`${p.firstName} ${p.lastName} - ${degreeName}`}
+              </Text>
+              <Text style={styles.rowValue}>
+                {passengerPrice.toFixed(2)} {priceDetail?.currencyPrint || 'SAR'}
+              </Text>
+            </View>
+          );
+        })}
       </View>
 
       <View style={styles.costSection}>
-        {/* Subtotal */}
         <View style={styles.row}>
           <Text style={styles.rowLabel}>{t('summary.subtotal')}</Text>
-          <Text style={styles.rowValue}>{t('summary.currency')}{subtotal}</Text>
+          <Text style={styles.rowValue}>
+            {subtotal.toFixed(2)} {prices[0]?.currencyPrint || 'SAR'}
+          </Text>
         </View>
 
-        {/* Taxes */}
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>{t('summary.taxes')}</Text>
-          <Text style={styles.rowValue}>{t('summary.currency')}{taxAmount.toFixed(2)}</Text>
-        </View>
+        {taxAmount > 0 && (
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>{t('summary.taxes')}</Text>
+            <Text style={styles.rowValue}>
+              {taxAmount.toFixed(2)} {prices[0]?.currencyPrint || 'SAR'}
+            </Text>
+          </View>
+        )}
         
-        {/* Total */}
         <View style={[styles.row, styles.totalRow]}>
           <Text style={styles.totalLabel}>{t('summary.total')}</Text>
-          <Text style={styles.totalValue}>{t('summary.currency')}{total}</Text>
+          <Text style={styles.totalValue}>
+            {total.toFixed(2)} {prices[0]?.currencyPrint || 'SAR'}
+          </Text>
         </View>
       </View>
     </View>
@@ -142,46 +155,114 @@ const BookingDetailsSection = ({ passengerCount, basePrice, t }) => {
 
 const SummaryScreen = () => {
   const router = useRouter();
-  const { t } = useTranslation();
-  
-  // 1. Get params passed from Reservation Screen
+  const { t, i18n } = useTranslation();
   const params = useLocalSearchParams();
 
-  // Debugging: Check your terminal to see if data is arriving
-  useEffect(() => {
-    console.log("Summary Screen Params Received:", params);
-  }, [params]);
+  const [tripData, setTripData] = useState(null);
+  const [prices, setPrices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const vesselName = params.vesselName || "MSC Bellissima";
-  const passengerCount = params.passengerCount ? parseInt(params.passengerCount) : 1;
-  const pricePerPax = params.price ? parseFloat(params.price) : 230.00;
-  
-  // 2. Extract Ports (with default fallbacks if undefined)
-  // If params.fromPort is undefined, it defaults to "Jeddah Islamic Port"
-  const fromPort = params.fromPort || "Jeddah Islamic Port";
-  const toPort = params.toPort || "Port Sudan";
+  // Parse payload
+  const parsedPayload = React.useMemo(() => {
+    try {
+      return JSON.parse(params.payload);
+    } catch (err) {
+      console.error('Failed to parse payload:', err);
+      return null;
+    }
+  }, [params.payload]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!parsedPayload?.tripSerial) {
+        setError('Invalid trip data');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        
+        // Fetch trip summary and prices in parallel
+        const [summaryRes, pricesRes] = await Promise.all([
+          getTripSummary(parsedPayload.tripSerial),
+          getAllPrices(parsedPayload.tripSerial)
+        ]);
+
+        setTripData(summaryRes);
+        setPrices(pricesRes.data || pricesRes || []);
+        
+        console.log('Trip Summary:', summaryRes);
+        console.log('Verified Prices:', pricesRes.data || pricesRes);
+        
+      } catch (err) {
+        console.error('Failed to fetch data:', err);
+        setError('Failed to load trip details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [parsedPayload?.tripSerial]);
 
   const handleContinue = () => {
+    if (!parsedPayload || !tripData || !prices.length) return;
+
+    // Prepare verified payload for payment
+    const verifiedPassengers = parsedPayload.passengers.map(p => {
+      const priceDetail = prices.find(pr => pr.degreeCode === p.degree?.oracleDegreeCode);
+      return {
+        ...p,
+        verifiedPrice: priceDetail?.convertedPrice || 0,
+        currency: priceDetail?.currencyPrint || 'SAR'
+      };
+    });
+
     router.push({
       pathname: '/payment',
       params: {
-        // Pass all data forward to Payment -> Ticket
-        passengerCount: params.passengerCount,
-        passengersData: params.passengersData, 
-        vesselName: params.vesselName,
-        price: params.price,
-        fromPort: fromPort, // Pass forward
-        toPort: toPort      // Pass forward
+        tripSerial: parsedPayload.tripSerial,
+        priceListTrxNo: tripData.priceListTrxNo,
+        passengersData: JSON.stringify(verifiedPassengers),
+        tripData: JSON.stringify(tripData)
       }
     });
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#092863" />
+          <Text style={styles.loadingText}>{t('common.loading')}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !parsedPayload) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error || 'Invalid data'}</Text>
+          <TouchableOpacity 
+            style={styles.backButtonError} 
+            onPress={() => router.back()}
+          >
+            <Text style={styles.backButtonText}>{t('common.goBack')}</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="white" />
       
       <View style={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <ArrowLeft size={30} color="#000" style={I18nManager.isRTL && { transform: [{ scaleX: -1 }] }} />
@@ -191,25 +272,19 @@ const SummaryScreen = () => {
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.sectionWrapper}>
-            <SummaryCard 
-              vesselName={vesselName} 
-              pricePerPax={pricePerPax} 
-              fromPort={fromPort}
-              toPort={toPort}
-              t={t} 
-            />
+            <SummaryCard tripData={tripData} t={t} />
           </View>
           
           <View style={styles.sectionWrapper}>
             <BookingDetailsSection 
-              passengerCount={passengerCount} 
-              basePrice={pricePerPax} 
-              t={t} 
+              passengers={parsedPayload.passengers}
+              prices={prices}
+              t={t}
+              i18n={i18n}
             />
           </View>
         </ScrollView>
 
-        {/* Footer */}
         <View style={styles.footer}>
           <TouchableOpacity 
             style={styles.continueButton} 
@@ -230,6 +305,41 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    color: '#5c7095',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    gap: 16,
+  },
+  errorText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    color: '#e74c3c',
+    textAlign: 'center',
+  },
+  backButtonError: {
+    backgroundColor: '#092863',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  backButtonText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 14,
+    color: 'white',
   },
   header: {
     flexDirection: 'row',
@@ -260,7 +370,6 @@ const styles = StyleSheet.create({
   sectionWrapper: {
     marginBottom: 10,
   },
-  
   card: {
     backgroundColor: 'white',
     borderRadius: 16,
@@ -283,7 +392,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: 'black',
-     textAlign: 'left',
+    textAlign: 'left',
   },
   priceContainer: {
     alignItems: 'flex-end',
@@ -293,22 +402,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     fontSize: 13,
     color: '#7e92b9',
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 2,
-  },
-  priceText: {
-    fontFamily: 'Inter-Bold',
-    fontWeight: 'bold',
-    fontSize: 16,
-    color: '#6291e8',
-  },
-  paxText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    color: 'black',
   },
   separator: {
     height: 1,
@@ -332,7 +425,6 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     width: 100,
   },
-  
   arrowIcon: {
     width: 14,
     height: 14,
@@ -343,7 +435,6 @@ const styles = StyleSheet.create({
     height: 32,
     marginBottom: 4,
   },
-
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -375,27 +466,6 @@ const styles = StyleSheet.create({
     color: 'black',
     textAlign: 'left',
   },
-  timeText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    color: 'black',
-    textAlign: 'left',
-  },
-  durationContainer: {
-    backgroundColor: '#fbfcff',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginTop: 4,
-  },
-  durationText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 12,
-    width: 80,
-    textAlign: 'center',
-    color: '#5c7096',
-  },
-
   detailsSection: {
     backgroundColor: 'white',
     padding: 24, 
@@ -427,6 +497,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     fontSize: 16,
     color: 'black',
+    flex: 1,
   },
   rowValue: {
     fontFamily: 'Inter-Regular',
@@ -452,7 +523,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#06193b',
   },
-
   footer: {
     position: 'absolute',
     bottom: 0,

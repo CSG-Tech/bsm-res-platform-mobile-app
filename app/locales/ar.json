@@ -43,7 +43,9 @@
   },
   "common": {
     "cancel": "إلغاء",
-    "ok": "موافق"
+    "ok": "موافق",
+    "loading": "جاري التحميل",
+    "goBack":"الرجوع"
   },
   "navigation": {
     "home": "الرئيسية",
@@ -128,7 +130,12 @@
     "confirm": "تأكيد",
     "currency": "$",
     "selectCountry": "اختر الدولة",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "error":"حدث خطأ",
+    "fillAllFields":"يرجى تقديم البريد الاليكتروني او رقم الموبايل",
+    "success":"تم إنشاء الحجز بنجاح",
+    "reservationCreated":"سيتم تحويلكم إلى بوابة الدفع لإتمام الحجز",
+    "reservationFailed":"تعذّر إتمام الحجز"
   },
   
    "eticket": {

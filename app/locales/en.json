@@ -43,7 +43,9 @@
   },
   "common": {
     "cancel": "Cancel",
-    "ok": "OK"
+    "ok": "OK",
+    "loading": "Loading..",
+    "goBack": "Return"
   },
   "navigation": {
     "home": "Home",
@@ -128,7 +130,12 @@
     "confirm": "Confirm",
     "currency": "$",
     "selectCountry": "Select Country",
-    "close": "Close"
+    "close": "Close",
+    "error": "Error",
+    "fillAllFields": "Please provide Email or Phone Number in order to proceed",
+    "success": "Reservation created successfully!",
+    "reservationCreated": "You will be redirected to a payment gateway",
+    "reservationFailed": "Unable to complete reservation"
   },
   "eticket": {
     "headerTitle": "E-Ticket",

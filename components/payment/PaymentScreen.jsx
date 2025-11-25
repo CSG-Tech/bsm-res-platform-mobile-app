@@ -1,8 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Check, ChevronDown } from 'lucide-react-native';
-import { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+    ActivityIndicator,
+    Alert,
     FlatList,
     I18nManager,
     Image,
@@ -18,6 +20,8 @@ import {
     TouchableWithoutFeedback,
     View
 } from 'react-native';
+import { getUserInfo, updateUser } from '../../axios/services/userService';
+import { createReservation } from '../../axios/services/ticketService';
 
 // --- Static Data: Countries ---
 const countries = [
@@ -29,7 +33,6 @@ const countries = [
   { id: 'us', code: '+1', name: 'United States', flag: 'https://flagcdn.com/w40/us.png' },
   { id: 'uk', code: '+44', name: 'United Kingdom', flag: 'https://flagcdn.com/w40/gb.png' },
 ];
-
 
 const FloatingLabelInput = ({ label, placeholder, value, onChangeText, keyboardType = 'default' }) => (
   <View style={styles.inputWrapper}>
@@ -62,21 +65,67 @@ const CustomRadioButton = ({ selected, onPress, label }) => (
   </TouchableOpacity>
 );
 
-
 const PaymentScreen = () => {
   const router = useRouter();
   const { t } = useTranslation();
+  const params = useLocalSearchParams();
   
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [originalEmail, setOriginalEmail] = useState('');
+  const [originalPhone, setOriginalPhone] = useState('');
   const [selectedPayment, setSelectedPayment] = useState('card');
-  
   const [selectedCountry, setSelectedCountry] = useState(countries[0]); 
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [dropdownLayout, setDropdownLayout] = useState({ x: 0, y: 0, width: 0 });
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   
-   const params = useLocalSearchParams(); 
   const countryButtonRef = useRef(null);
+
+  // Parse params
+  const parsedPassengers = React.useMemo(() => {
+    try {
+      return JSON.parse(params.passengersData);
+    } catch {
+      return [];
+    }
+  }, [params.passengersData]);
+
+  const parsedTripData = React.useMemo(() => {
+    try {
+      return JSON.parse(params.tripData);
+    } catch {
+      return null;
+    }
+  }, [params.tripData]);
+
+  const tripSerial = params.tripSerial;
+  const priceListTrxNo = params.priceListTrxNo;
+
+  // Calculate total
+  const totalAmount = parsedPassengers.reduce((sum, p) => sum + (p.verifiedPrice || 0), 0);
+  const currency = parsedPassengers[0]?.currency || 'SAR';
+
+  // Fetch user info on mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const data = await getUserInfo();
+        setEmail(data.email || '');
+        setPhone(data.phone || '');
+        setOriginalEmail(data.email || '');
+        setOriginalPhone(data.phone || '');
+      } catch (err) {
+        console.error('Failed to fetch user info:', err);
+        // Continue anyway for guest users
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchUserData();
+  }, []);
 
   const handleOpenDropdown = () => {
     if (countryButtonRef.current) {
@@ -90,6 +139,95 @@ const PaymentScreen = () => {
       });
     }
   };
+
+  const handleConfirmPayment = async () => {
+    if (!email && !phone) {
+      Alert.alert(t('payment.error'), t('payment.fillAllFields'));
+      return;
+    }
+
+    setSubmitting(true);
+    
+    try {
+      // 1. Update user info if changed
+      const hasChanges = email !== originalEmail || phone !== originalPhone;
+      if (hasChanges) {
+        await updateUser({ email, phone });
+      }
+      // 2. Create reservation
+      const formatDate = (dateStr) => {
+        if (!dateStr) return undefined;
+        const [day, month, year] = dateStr.split('/');
+        return `${year}-${month}-${day}`;
+      };
+
+      const reservationPayload = {
+        tripSerial: Number(tripSerial),
+        priceListTrxNo: Number(priceListTrxNo),
+        passengers: parsedPassengers.map(p => ({
+          passengerFirstName: p.firstName,
+          passengerMiddleName: p.middleName || undefined, // send undefined if empty
+          passengerLastName: p.lastName,
+          gender: p.gender,
+          birthdate: p.birthdate,
+          nationalityCode: Number(p.nationality?.oracleNatCode),
+          birthplace: p.birthplace,
+          degreeCode: Number(p.degree?.oracleDegreeCode),
+          visaTypeCode: p.visaType?.oracleVisaTypeCode ? Number(p.visaType.oracleVisaTypeCode) : undefined,
+          visaNumber: p.visaNumber || undefined,
+          passportNumber: p.passportNumber,
+          passportIssueDate: p.passportIssuingDate,
+          passportExpiryDate: p.passportExpirationDate,
+        }))
+      };
+      console.log('Creating reservation with payload:', reservationPayload);
+      
+      const result = await createReservation(reservationPayload);
+      
+      console.log('Reservation created successfully:', result);
+
+      // 3. TODO: Redirect to payment gateway
+      Alert.alert(
+        t('payment.success'),
+        `${t('payment.reservationCreated')}\nID: ${result.reservationId}\n${t('payment.total')}: ${result.totalAmount} ${result.currency}`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // For now, navigate to ticket screen
+              router.push({
+                pathname: '/eticket',
+                params: {
+                  reservationId: result.reservationId,
+                  passengersData: params.passengersData
+                }
+              });
+            }
+          }
+        ]
+      );
+
+    } catch (err) {
+      console.error('Reservation failed:', err);
+      Alert.alert(
+        t('payment.error'),
+        err.response?.data?.message || err.message || t('payment.reservationFailed')
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#092863" />
+          <Text style={styles.loadingText}>{t('common.loading')}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -190,23 +328,21 @@ const PaymentScreen = () => {
         <View style={styles.footer}>
           <View style={styles.totalContainer}>
             <Text style={styles.totalLabel}>{t('payment.total')}</Text>
-            <Text style={styles.totalAmount}>{t('payment.currency')}250.00</Text>
+            <Text style={styles.totalAmount}>
+              {totalAmount.toFixed(2)} {currency}
+            </Text>
           </View>
 
-           <TouchableOpacity 
-        style={styles.confirmButton} 
-        onPress={() => {
-          console.log('Confirmed');
-          router.push({
-            pathname: '/eticket', 
-            params: { 
-              passengerCount: params.passengerCount,
-              passengersData: params.passengersData 
-            } 
-          });
-        }}
-      >
-            <Text style={styles.confirmButtonText}>{t('payment.confirm')}</Text>
+          <TouchableOpacity 
+            style={[styles.confirmButton, submitting && styles.confirmButtonDisabled]} 
+            onPress={handleConfirmPayment}
+            disabled={submitting}
+          >
+            {submitting ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Text style={styles.confirmButtonText}>{t('payment.confirm')}</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -227,7 +363,6 @@ const PaymentScreen = () => {
                   top: dropdownLayout.y,
                   left: I18nManager.isRTL ? undefined : dropdownLayout.x,
                   right: I18nManager.isRTL ? (dropdownLayout.x) : undefined, 
-                  left: dropdownLayout.x, 
                   width: 220, 
                 },
               ]}
@@ -278,6 +413,17 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    color: '#5c7095',
   },
   header: {
     flexDirection: 'row',
@@ -427,6 +573,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'black',
   },
+  separator: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+  },
 
   footer: {
     position: 'absolute',
@@ -469,6 +619,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  confirmButtonDisabled: {
+    opacity: 0.6,
   },
   confirmButtonText: {
     fontFamily: 'Inter-Bold',

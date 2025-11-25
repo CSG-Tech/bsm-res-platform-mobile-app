@@ -2,6 +2,7 @@ import axios from 'axios';
 import Constants from 'expo-constants';
 import { clearTokens, getTokens, saveTokens } from '../../storage/tokenStorage';
 import { ENDPOINTS } from './endpoints';
+import { getOrCreateDeviceId } from '../../storage/deviceStorage';
 const { API_BASE_URL_DEV, API_BASE_URL_PROD } = Constants.expoConfig.extra;
 
 const baseURL = __DEV__ ? API_BASE_URL_DEV : API_BASE_URL_PROD;
@@ -37,7 +38,7 @@ export const attachAuthInterceptors = (api) => {
           // refresh manually
           const refreshResponse = await axios.post(`${baseURL}${ENDPOINTS.AUTH.REFRESH}`, {
             refreshToken,
-            deviceId: 'mobile-app',
+            deviceId: await getOrCreateDeviceId(),
           });
 
           const newTokens = refreshResponse.data;

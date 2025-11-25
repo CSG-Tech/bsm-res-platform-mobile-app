@@ -12,6 +12,7 @@ export const ENDPOINTS = {
   TRIPS: {
     BY_LINE: (fromDate, toDate, lineCode, classId) =>
       `/trips/getTripsByDateAndPort/${fromDate}/${toDate}/${lineCode}/${classId}`,
+    SUMMARY: (tripSerial) => `/trips/${tripSerial}`, 
   },
   PORTS: {
     GET_FROM_PORTS: '/ports/get_from_ports/SA',
@@ -26,5 +27,12 @@ export const ENDPOINTS = {
   },
   PRICES: {
     GET_BY_TRIP: (tripserial, branch) => `/price-lists/prices/${tripserial}?branch=${branch}`,
+  },
+  RESERVATIONS: {
+    CREATE: '/reservations', 
+  },
+  USER: {
+    GET_INFO: '/users/me',
+    UPDATE: '/users/update',
   },
 };

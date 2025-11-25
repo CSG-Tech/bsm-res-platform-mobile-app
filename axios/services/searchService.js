@@ -17,6 +17,7 @@ export const getToPorts = async (fromPort) => {
   return res.data;
 };
 
+// 🔸 Get All Classes
 export const getAllClasses = async (className) => {
   if (className === undefined) {
     console.log('➡️ getAllClasses URL:', ENDPOINTS.CLASSES.GET_ALL);
@@ -34,6 +35,7 @@ export const getAllClasses = async (className) => {
   }
 };
 
+// 🔸 Get Trips for Search Results
 export const getTripsByDateAndLine = async (fromDate, toDate, lineCode, classId) => {
   console.log('➡️ trips URL:', ENDPOINTS.TRIPS.BY_LINE(fromDate, toDate, lineCode, classId)
   );
