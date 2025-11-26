@@ -22,6 +22,7 @@ import {
 } from 'react-native';
 import { getUserInfo, updateUser } from '../../axios/services/userService';
 import { createReservation } from '../../axios/services/ticketService';
+import { initiatePayment } from '../../axios/services/paymentService';
 
 // --- Static Data: Countries ---
 const countries = [
@@ -80,7 +81,8 @@ const PaymentScreen = () => {
   const [dropdownLayout, setDropdownLayout] = useState({ x: 0, y: 0, width: 0 });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  
+  const [paymentMethod, setPaymentMethod] = useState('creditcard'); // default
+
   const countryButtonRef = useRef(null);
 
   // Parse params
@@ -147,26 +149,21 @@ const PaymentScreen = () => {
     }
 
     setSubmitting(true);
-    
+
     try {
-      // 1. Update user info if changed
+      // 1️⃣ Update user info if changed
       const hasChanges = email !== originalEmail || phone !== originalPhone;
       if (hasChanges) {
         await updateUser({ email, phone });
       }
-      // 2. Create reservation
-      const formatDate = (dateStr) => {
-        if (!dateStr) return undefined;
-        const [day, month, year] = dateStr.split('/');
-        return `${year}-${month}-${day}`;
-      };
 
+      // 2️⃣ Create reservation
       const reservationPayload = {
         tripSerial: Number(tripSerial),
         priceListTrxNo: Number(priceListTrxNo),
         passengers: parsedPassengers.map(p => ({
           passengerFirstName: p.firstName,
-          passengerMiddleName: p.middleName || undefined, // send undefined if empty
+          passengerMiddleName: p.middleName || undefined,
           passengerLastName: p.lastName,
           gender: p.gender,
           birthdate: p.birthdate,
@@ -180,35 +177,25 @@ const PaymentScreen = () => {
           passportExpiryDate: p.passportExpirationDate,
         }))
       };
-      console.log('Creating reservation with payload:', reservationPayload);
-      
-      const result = await createReservation(reservationPayload);
-      
-      console.log('Reservation created successfully:', result);
 
-      // 3. TODO: Redirect to payment gateway
-      Alert.alert(
-        t('payment.success'),
-        `${t('payment.reservationCreated')}\nID: ${result.reservationId}\n${t('payment.total')}: ${result.totalAmount} ${result.currency}`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // For now, navigate to ticket screen
-              router.push({
-                pathname: '/eticket',
-                params: {
-                  reservationId: result.reservationId,
-                  passengersData: params.passengersData
-                }
-              });
-            }
-          }
-        ]
-      );
+      const reservation = await createReservation(reservationPayload);
+      console.log('Reservation created successfully:', reservation);
+
+      // 3️⃣ Initiate payment for the reservation
+      const paymentData = await initiatePayment(reservation.reservationId, paymentMethod);
+      console.log('Payment initiated:', paymentData);
+
+      // 4️⃣ Navigate to WebView and pass payment data
+      router.push({
+        pathname: '/payment/webview',
+        params: {
+          reservationId: reservation.reservationId.toString(),
+          paymentData: JSON.stringify(paymentData), // WebView expects JSON string
+        }
+      });
 
     } catch (err) {
-      console.error('Reservation failed:', err);
+      console.error('Reservation or payment failed:', err);
       Alert.alert(
         t('payment.error'),
         err.response?.data?.message || err.message || t('payment.reservationFailed')
@@ -218,16 +205,6 @@ const PaymentScreen = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#092863" />
-          <Text style={styles.loadingText}>{t('common.loading')}</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
