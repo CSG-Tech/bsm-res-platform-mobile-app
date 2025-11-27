@@ -135,7 +135,9 @@
     "fillAllFields": "Please provide Email or Phone Number in order to proceed",
     "success": "Reservation created successfully!",
     "reservationCreated": "You will be redirected to a payment gateway",
-    "reservationFailed": "Unable to complete reservation"
+    "reservationFailed": "Unable to complete reservation",
+    "completePayment": "Complete Payment",
+    "loadingPayment": "Preparing Payment"
   },
   "eticket": {
     "headerTitle": "E-Ticket",

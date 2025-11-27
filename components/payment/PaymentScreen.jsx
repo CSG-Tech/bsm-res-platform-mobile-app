@@ -182,12 +182,14 @@ const PaymentScreen = () => {
       console.log('Reservation created successfully:', reservation);
 
       // 3️⃣ Initiate payment for the reservation
+      console.log('Initiating payment for reservation ID:', reservation.reservationId);
+      console.log('Selected payment method:', selectedPayment);
       const paymentData = await initiatePayment(reservation.reservationId, paymentMethod);
       console.log('Payment initiated:', paymentData);
 
       // 4️⃣ Navigate to WebView and pass payment data
       router.push({
-        pathname: '/payment/webview',
+        pathname: '/payment-webview',
         params: {
           reservationId: reservation.reservationId.toString(),
           paymentData: JSON.stringify(paymentData), // WebView expects JSON string

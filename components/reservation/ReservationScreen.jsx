@@ -553,11 +553,6 @@ const updatePassengerField = (id, field, value) => {
     
     return isRTL ? firstPrice.currencyArbPrint : firstPrice.currencyPrint;
   }, [availablePrices, isRTL]);
-  console.log('All passengers details:', allPassengersDetails);
-  console.log('Selected passenger ID:', selectedPassengerId);
-  console.log('Current passenger:', currentPassenger);
-  console.log('Current passenger price:', currentPassengerPrice);
-  console.log('Total price:', totalPrice);
 
 
   return (

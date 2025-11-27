@@ -46,60 +46,57 @@ const PaymentWebViewScreen = () => {
           setPageReady(true);
           setLoading(false);
           // Send payment data to WebView
-          if (webViewRef.current && paymentData && pageReady) {
-            webViewRef.current.postMessage(JSON.stringify(paymentData));
+          if (webViewRef.current && paymentData) {
+            setTimeout(() => {
+              webViewRef.current?.postMessage(JSON.stringify(paymentData));
+            }, 100);
           }
           break;
 
         case 'PAYMENT_SUCCESS':
-          Alert.alert(
-            t('payment.success'),
-            t('payment.paymentCompleted'),
-            [
-              {
-                text: 'OK',
-                onPress: () => {
-                  router.replace({
-                    pathname: '/eticket',
-                    params: {
-                      reservationId: reservationId,
-                      paymentId: message.payment?.id
-                    }
-                  });
-                }
-              }
-            ]
-          );
+          // message.payment should also be a stringified object if you stringified it in the WebView
+          const paymentObj = message.payment ? JSON.parse(message.payment) : null;
+          router.replace({
+            pathname: '/eticket',
+            params: {
+              reservationId,
+            }
+          });
           break;
 
         case 'PAYMENT_FAILED':
+          // message.error is guaranteed to be a string
+          const errorMessage = typeof message.error === 'string'
+            ? message.error
+            : JSON.stringify(message.error);
           Alert.alert(
             t('payment.error'),
-            message.error?.message || t('payment.paymentFailed'),
+            errorMessage || t('payment.paymentFailed'),
             [
-              {
-                text: 'OK',
-                onPress: () => router.back()
-              }
+              { text: 'OK', onPress: () => router.back() }
             ]
           );
           break;
 
         case 'PAYMENT_ERROR':
+          const msg = typeof message.message === 'string'
+            ? message.message
+            : JSON.stringify(message.message);
           Alert.alert(
             t('payment.error'),
-            message.message || t('payment.paymentError'),
+            msg || t('payment.paymentError'),
             [
-              {
-                text: 'OK',
-                onPress: () => router.back()
-              }
+              { text: 'OK', onPress: () => router.back() }
             ]
           );
           break;
+
+        default:
+          console.warn('Unhandled WebView message type:', message.type);
       }
     } catch (error) {
       console.error('Failed to parse WebView message:', error);
+      Alert.alert(t('payment.error'), t('payment.paymentError'));
     }
   };
 
@@ -150,6 +147,7 @@ const PaymentWebViewScreen = () => {
           javaScriptEnabled={true}
           domStorageEnabled={true}
           startInLoadingState={true}
+          originWhitelist={['*']}
         />
       </View>
     </SafeAreaView>

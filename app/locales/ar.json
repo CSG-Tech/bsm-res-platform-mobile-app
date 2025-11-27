@@ -135,7 +135,9 @@
     "fillAllFields":"يرجى تقديم البريد الاليكتروني او رقم الموبايل",
     "success":"تم إنشاء الحجز بنجاح",
     "reservationCreated":"سيتم تحويلكم إلى بوابة الدفع لإتمام الحجز",
-    "reservationFailed":"تعذّر إتمام الحجز"
+    "reservationFailed":"تعذّر إتمام الحجز",
+    "completePayment":"اتمام الدفع",
+    "loadingPayment":"جاري تهيئة الدفع"
   },
   
    "eticket": {
