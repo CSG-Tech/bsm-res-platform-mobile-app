@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Check, ChevronDown } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
@@ -21,8 +21,10 @@ import {
     View
 } from 'react-native';
 import { getUserInfo, updateUser } from '../../axios/services/userService';
-import { createReservation } from '../../axios/services/ticketService';
+import { createReservation, getReservationStatus } from '../../axios/services/ticketService';
 import { initiatePayment } from '../../axios/services/paymentService';
+import { useFocusEffect } from 'expo-router';
+
 
 // --- Static Data: Countries ---
 const countries = [
@@ -85,6 +87,36 @@ const PaymentScreen = () => {
 
   const countryButtonRef = useRef(null);
 
+  useEffect(() => {
+    const checkExistingReservation = async () => {
+      const existingReservationId = params.reservationId;
+      if (existingReservationId) {
+        try {
+          const status = await getReservationStatus(existingReservationId);
+          if (status.status === 'PAID' || status.status === 'AUTHORIZED') {
+            router.replace(`/confirmation/${existingReservationId}`);
+          } else if (status.status === 'PROCESSING' && !status.paymentIntent) {
+            // Allow cancel
+            Alert.alert(
+              t('payment.resumeOrCancel'),
+              t('payment.resumeOrCancelMessage'),
+              [
+                { text: t('payment.cancel'), onPress: () => cancelProcessingReservation(existingReservationId) },
+                { text: t('payment.resume'), style: 'cancel' }
+              ]
+            );
+          }
+        } catch (err) {
+          console.error('Failed to check reservation:', err);
+        }
+      }
+    };
+    
+    if (!loading) {
+      checkExistingReservation();
+    }
+  }, [loading, params.reservationId]);
+
   // Parse params
   const parsedPassengers = React.useMemo(() => {
     try {
@@ -129,6 +161,12 @@ const PaymentScreen = () => {
     fetchUserData();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      setSubmitting(false); // reset confirm button whenever the screen is focused
+    }, [])
+  );
+  
   const handleOpenDropdown = () => {
     if (countryButtonRef.current) {
       countryButtonRef.current.measureInWindow((x, y, width, height) => {
@@ -149,6 +187,19 @@ const PaymentScreen = () => {
     }
 
     setSubmitting(true);
+    const existingReservationId = params.reservationId;
+    if (existingReservationId) {
+      // Use existing reservation
+      const paymentData = await initiatePayment(existingReservationId, paymentMethod);
+      router.push({
+        pathname: '/payment-webview',
+        params: {
+          reservationId: existingReservationId,
+          paymentData: JSON.stringify(paymentData),
+        }
+      });
+      return;
+    }
 
     try {
       // 1️⃣ Update user info if changed

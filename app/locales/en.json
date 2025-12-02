@@ -113,7 +113,11 @@
     "taxes": "Taxes",
     "total": "Total",
     "continue": "Continue",
-    "currency": "$"
+    "currency": "$",
+    "retry": "Retry",
+    "error": "An error occurred while creating the reservation. Please try again.",
+    "tooManyRetries": "Too many failed reservation attempts. Please try again later.",
+    "ok": "OK"
   },
   "payment": {
     "title": "Payment",
@@ -137,7 +141,9 @@
     "reservationCreated": "You will be redirected to a payment gateway",
     "reservationFailed": "Unable to complete reservation",
     "completePayment": "Complete Payment",
-    "loadingPayment": "Preparing Payment"
+    "loadingPayment": "Preparing Payment",
+    "paymentFailed": "Failed to prepare payment, please try again",
+    "invalidPaymentData": "Invalid payment data received"
   },
   "eticket": {
     "headerTitle": "E-Ticket",
@@ -162,5 +168,25 @@
     "changeDegree": "Change Degree",
     "reschedule": "Reschedule",
     "cancelBooking": "Cancel Booking"
-  }
+  },
+  "paymentResult": {
+  "successTitle": "Payment Successful!",
+  "successMessage": "Your payment has been processed successfully.",
+  "authorizedTitle": "Payment Authorized",
+  "authorizedMessage": "Your payment has been authorized and will be captured shortly.",
+  "failedTitle": "Payment Failed",
+  "failedMessage": "Your payment could not be processed. Please try again.",
+  "initiatedTitle": "Payment Initiated",
+  "initiatedMessage": "Your payment is being processed. This may take a few moments.",
+  "processingTitle": "Processing Payment",
+  "processingMessage": "Please wait while we confirm your payment...",
+  "errorTitle": "Error",
+  "errorMessage": "An error occurred while processing your payment.",
+  "reservationId": "Reservation ID",
+  "paymentId": "Payment ID",
+  "continue": "Continue",
+  "tryAgain": "Try Again",
+  "checkLater": "Check Later"
+}
+
 }

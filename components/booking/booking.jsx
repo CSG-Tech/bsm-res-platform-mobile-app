@@ -291,16 +291,12 @@ const BookingScreen = () => {
   const changeLanguage = async (lang) => {
     if (lang === i18n.language) return;
     try {
-      await AsyncStorage.setItem('user-language', lang);
-      if (lang === 'en')
-        I18nManager.forceRTL(lang === 'ar');
-      else
-        I18nManager.forceRTL(lang === 'en');
+      await i18n.changeLanguage(lang); // This automatically saves via cacheUserLanguage
+      I18nManager.forceRTL(lang === 'ar'); // Fixed: was backwards
     } catch (e) {
       console.error("Failed to change language", e);
     }
   };
-
   const handleSwitchPorts = () => {
     setFromPort(toPort);
     setToPort(fromPort);

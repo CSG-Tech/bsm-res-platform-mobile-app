@@ -29,9 +29,6 @@ export const ENDPOINTS = {
     GET_BY_TRIP: (tripserial, branch) =>
       `/price-lists/prices/${tripserial}?branch=${branch || ''}`,
   },
-  RESERVATIONS: {
-    CREATE: '/reservations',
-  },
   USER: {
     GET_INFO: '/users/me',
     UPDATE: '/users/update',
@@ -40,6 +37,13 @@ export const ENDPOINTS = {
     INITIATE: '/payments/initiate',                  
     MOYASAR_CALLBACK: '/payments/moyasar/callback', 
     VERIFY: (paymentId) => `/payments/verify/${paymentId}`, 
-    CAPTURE: (reservationId) => `/payments/capture/${reservationId}`, 
+    CAPTURE: (reservationId) => `/payments/capture/${reservationId}`,
+    GET_RESERVATION_STATUS: (reservationId) => `/payments/reservation/${reservationId}/status`,
+    CANCEL_PROCESSING: (reservationId) => `/payments/reservation/${reservationId}/cancel-processing`,
+  },
+  RESERVATIONS: {
+    CREATE: '/reservations',
+    UPDATE_PASSENGERS: (reservationId) => `/reservations/${reservationId}/passengers`,
+    EXPIRE: (reservationId) => `/reservations/${reservationId}/expire`,
   },
 };

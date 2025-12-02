@@ -113,7 +113,11 @@
     "taxes": "الضرائب",
     "total": "الإجمالي",
     "continue": "متابعة",
-    "currency": "$"
+    "currency": "$",
+    "retry": "إعادة المحاولة",
+    "error": "حدث خطأ أثناء إنشاء الحجز. يرجى المحاولة مرة أخرى.",
+    "tooManyRetries": "عدد كبير جدًا من محاولات الحجز الفاشلة. يرجى المحاولة مرة أخرى لاحقًا.",
+    "ok": "موافق"
   },
   "payment": {
     "title": "الدفع",
@@ -137,7 +141,9 @@
     "reservationCreated":"سيتم تحويلكم إلى بوابة الدفع لإتمام الحجز",
     "reservationFailed":"تعذّر إتمام الحجز",
     "completePayment":"اتمام الدفع",
-    "loadingPayment":"جاري تهيئة الدفع"
+    "loadingPayment":"جاري تهيئة الدفع",
+    "paymentFailed":"فشل في تهيئة الدفع، يرجى المحاولة مرة أخرى",
+    "invalidPaymentData":"تم استلام بيانات دفع غير صالحة"
   },
   
    "eticket": {
@@ -163,6 +169,24 @@
     "changeDegree": "تغيير الدرجة",
     "reschedule": "إعادة جدولة",
     "cancelBooking": "إلغاء الحجز"
+  },
+  "paymentResult": {
+    "successTitle": "تم الدفع بنجاح!",
+    "successMessage": "تمت معالجة دفعتك بنجاح.",
+    "authorizedTitle": "تم تفويض الدفع",
+    "authorizedMessage": "تم تفويض دفعتك وسيتم تحصيلها قريبًا.",
+    "failedTitle": "فشل الدفع",
+    "failedMessage": "لم تتم معالجة دفعتك. يرجى المحاولة مرة أخرى.",
+    "initiatedTitle": "تم بدء الدفع",
+    "initiatedMessage": "يتم معالجة دفعتك. قد يستغرق هذا بضع لحظات.",
+    "processingTitle": "جاري معالجة الدفع",
+    "processingMessage": "يرجى الانتظار بينما نقوم بتأكيد دفعتك...",
+    "errorTitle": "خطأ",
+    "errorMessage": "حدث خطأ أثناء معالجة دفعتك.",
+    "reservationId": "رقم الحجز",
+    "paymentId": "رقم الدفع",
+    "continue": "استمرار",
+    "tryAgain": "حاول مرة أخرى",
+    "checkLater": "تحقق لاحقًا"
   }
-
 }

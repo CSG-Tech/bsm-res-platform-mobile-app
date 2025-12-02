@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,13 +11,23 @@ import {
   Platform,
   Image,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react-native';
 import { getTripSummary } from '../../axios/services/ticketService';
 import { getAllPrices } from '../../axios/services/reservationService';
-
+import { 
+  savePendingReservation, 
+  getPendingReservation, 
+  clearPendingReservation
+} from '../../axios/storage/reservationStorage';
+import { 
+  createReservation, 
+  updateReservationPassengers, 
+  expireReservation } from '../../axios/services/ticketService';
+import { useFocusEffect } from 'expo-router';
 const SummaryCard = ({ tripData, t }) => {
   if (!tripData) return null;
 
@@ -161,8 +171,9 @@ const SummaryScreen = () => {
   const [tripData, setTripData] = useState(null);
   const [prices, setPrices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingPayment, setLoadingPayment] = useState(false);
   const [error, setError] = useState(null);
-
+  const [retryCount, setRetryCount] = useState(0);
   // Parse payload
   const parsedPayload = React.useMemo(() => {
     try {
@@ -172,6 +183,12 @@ const SummaryScreen = () => {
       return null;
     }
   }, [params.payload]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setLoadingPayment(false); 
+    }, [])
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -207,30 +224,128 @@ const SummaryScreen = () => {
     fetchData();
   }, [parsedPayload?.tripSerial]);
 
-  const handleContinue = () => {
-    if (!parsedPayload || !tripData || !prices.length) return;
+const retryCountRef = useRef(0);
 
-    // Prepare verified payload for payment
-    const verifiedPassengers = parsedPayload.passengers.map(p => {
-      const priceDetail = prices.find(pr => pr.degreeCode === p.degree?.oracleDegreeCode);
-      return {
-        ...p,
-        verifiedPrice: priceDetail?.convertedPrice || 0,
-        currency: priceDetail?.currencyPrint || 'SAR'
-      };
-    });
+const handleContinue = async () => {
+  if (!parsedPayload || !tripData || !prices.length) return;
+  setLoadingPayment(true);
+  // Check retry limit using ref (always current)
+  if (retryCountRef.current >= 3) {
+    await clearPendingReservation();
+    retryCountRef.current = 0; // Reset ref
+    setRetryCount(0); // Reset state
+    Alert.alert(
+      t('summary.error'),
+      t('summary.tooManyRetries'),
+      [
+        {
+          text: t('summary.ok'),
+          onPress: () => {
+            router.dismissAll();
+            router.replace('/');
+          }   
+        }
+      ]
+    );
+    return;
+  }
 
+  const existingReservationId = await getPendingReservation();
+  console.log('we should be retrying now with reservation id:', existingReservationId);
+  
+  if (retryCountRef.current > 0) {
+    try{
+      await expireReservation(existingReservationId);
+    }
+    catch(err){
+      console.error('Error expiring reservation before retry:', err);
+    }
+    console.log(`Retry attempt #${retryCountRef.current}`);
+  }
+  
+  // Prepare verified passengers
+  const verifiedPassengers = parsedPayload.passengers.map(p => {
+    const priceDetail = prices.find(pr => pr.degreeCode === p.degree?.oracleDegreeCode);
+    return {
+      ...p,
+      verifiedPrice: priceDetail?.convertedPrice || 0,
+      currency: priceDetail?.currencyPrint || 'SAR'
+    };
+  });
+
+  // Build the payload
+  const reservationPayload = {
+    tripSerial: Number(parsedPayload.tripSerial),
+    priceListTrxNo: Number(tripData.priceListTrxNo),
+    passengers: verifiedPassengers.map(p => ({
+      passengerFirstName: p.firstName,
+      passengerMiddleName: p.middleName || undefined,
+      passengerLastName: p.lastName,
+      gender: p.gender,
+      birthdate: p.birthdate,
+      nationalityCode: Number(p.nationality?.oracleNatCode),
+      birthplace: p.birthplace,
+      degreeCode: Number(p.degree?.oracleDegreeCode),
+      visaTypeCode: p.visaType?.oracleVisaTypeCode ? Number(p.visaType.oracleVisaTypeCode) : undefined,
+      visaNumber: p.visaNumber || undefined,
+      passportNumber: p.passportNumber,
+      passportIssueDate: p.passportIssuingDate,
+      passportExpiryDate: p.passportExpirationDate,
+    }))
+  };
+
+  try {
+    let reservationId;
+    
+    if (existingReservationId) {
+      await updateReservationPassengers(existingReservationId, reservationPayload);
+      reservationId = existingReservationId;
+      console.log('✅ Updated existing reservation:', reservationId);
+    } else {
+      const reservation = await createReservation(reservationPayload);
+      reservationId = reservation.reservationId;
+      await savePendingReservation(reservationId);
+      console.log('✅ Created new reservation:', reservationId);
+    }
+    
+    // Reset on success
+    retryCountRef.current = 0;
+    setRetryCount(0);
+    setLoadingPayment(false);
     router.push({
       pathname: '/payment',
       params: {
+        reservationId: String(reservationId),
         tripSerial: parsedPayload.tripSerial,
         priceListTrxNo: tripData.priceListTrxNo,
         passengersData: JSON.stringify(verifiedPassengers),
         tripData: JSON.stringify(tripData)
       }
     });
-  };
-
+  } catch (err) {
+    console.error('❌ Reservation error:', err.response?.data || err);
+    
+    // Increment ref (immediately available)
+    retryCountRef.current += 1;
+    setRetryCount(retryCountRef.current); // Keep state in sync for UI
+    console.log(`Incremented retry count to ${retryCountRef.current}`);
+    
+    Alert.alert(
+      t('summary.error'),
+      err.response?.data?.message || err.message || t('summary.reservationFailed'),
+      [
+        {
+          text: t('summary.ok'),
+          onPress: () => {setLoadingPayment(false); }
+        },
+        {
+          text: t('summary.retry'),
+          onPress: () => handleContinue()
+        }
+      ]
+    );
+  }
+};
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -284,13 +399,20 @@ const SummaryScreen = () => {
             />
           </View>
         </ScrollView>
-
         <View style={styles.footer}>
           <TouchableOpacity 
-            style={styles.continueButton} 
+            style={[
+              styles.continueButton, 
+              loadingPayment && styles.continueButtonDisabled // <-- Add this
+            ]} 
             onPress={handleContinue}
+            disabled={loadingPayment} // <-- Prevent clicks
           >
-            <Text style={styles.continueButtonText}>{t('summary.continue')}</Text>
+            {loadingPayment ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Text style={styles.continueButtonText}>{t('summary.continue')}</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -549,6 +671,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: 'white',
+  },
+  continueButtonDisabled: {
+    backgroundColor: '#a0a0a0', // greyed out
   },
 });
 

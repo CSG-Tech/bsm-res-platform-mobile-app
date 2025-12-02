@@ -59,6 +59,7 @@ export default function RootLayout() {
       <Stack.Screen name="payment" options={{ headerShown: false }} />
       <Stack.Screen name="eticket" options={{ headerShown: false }} />
       <Stack.Screen name="payment-webview" options={{ headerShown: false }} />
+      <Stack.Screen name="payment-result" options={{ headerShown: false }} />
     </Stack>
   );
 }

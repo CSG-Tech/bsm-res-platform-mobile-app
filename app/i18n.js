@@ -9,17 +9,18 @@ const STORE_LANGUAGE_KEY = 'user-language';
 
 const languageDetector = {
   type: 'languageDetector',
-  async: true, 
+  async: true,
   detect: async (callback) => {
     const savedLanguage = await AsyncStorage.getItem(STORE_LANGUAGE_KEY);
     const language = savedLanguage || 'en';
-    console.log('Language detected:', language); 
+    console.log('Language detected:', language);
     callback(language);
   },
   init: () => {},
-  cacheUserLanguage: () => {},
+  cacheUserLanguage: async (language) => {
+    await AsyncStorage.setItem(STORE_LANGUAGE_KEY, language);
+  },
 };
-
 const resources = {
   en: {
     translation: en,

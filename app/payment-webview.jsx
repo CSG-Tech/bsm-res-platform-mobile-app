@@ -4,7 +4,6 @@ import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
-  Alert,
   I18nManager,
   Platform,
   SafeAreaView,
@@ -18,10 +17,10 @@ import { WebView } from 'react-native-webview';
 
 const PaymentWebViewScreen = () => {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const params = useLocalSearchParams();
   const webViewRef = useRef(null);
-  
+
   const [loading, setLoading] = useState(true);
   const [pageReady, setPageReady] = useState(false);
 
@@ -45,7 +44,6 @@ const PaymentWebViewScreen = () => {
         case 'PAGE_READY':
           setPageReady(true);
           setLoading(false);
-          // Send payment data to WebView
           if (webViewRef.current && paymentData) {
             setTimeout(() => {
               webViewRef.current?.postMessage(JSON.stringify(paymentData));
@@ -54,41 +52,21 @@ const PaymentWebViewScreen = () => {
           break;
 
         case 'PAYMENT_SUCCESS':
-          // message.payment should also be a stringified object if you stringified it in the WebView
+        case 'PAYMENT_FAILED':
+        case 'PAYMENT_ERROR':
+        case 'PAYMENT_PROCESSING':
+          // All payment outcomes go to payment-result screen
           const paymentObj = message.payment ? JSON.parse(message.payment) : null;
           router.replace({
-            pathname: '/eticket',
+            pathname: '/payment-result',
             params: {
+              status: message.type === 'PAYMENT_SUCCESS' ? 'paid' :
+                      message.type === 'PAYMENT_FAILED' ? 'failed' :
+                      message.type === 'PAYMENT_PROCESSING' ? 'processing' : 'error',
               reservationId,
+              paymentId: paymentObj?.id || message.paymentId || ''
             }
           });
-          break;
-
-        case 'PAYMENT_FAILED':
-          // message.error is guaranteed to be a string
-          const errorMessage = typeof message.error === 'string'
-            ? message.error
-            : JSON.stringify(message.error);
-          Alert.alert(
-            t('payment.error'),
-            errorMessage || t('payment.paymentFailed'),
-            [
-              { text: 'OK', onPress: () => router.back() }
-            ]
-          );
-          break;
-
-        case 'PAYMENT_ERROR':
-          const msg = typeof message.message === 'string'
-            ? message.message
-            : JSON.stringify(message.message);
-          Alert.alert(
-            t('payment.error'),
-            msg || t('payment.paymentError'),
-            [
-              { text: 'OK', onPress: () => router.back() }
-            ]
-          );
           break;
 
         default:
@@ -96,8 +74,38 @@ const PaymentWebViewScreen = () => {
       }
     } catch (error) {
       console.error('Failed to parse WebView message:', error);
-      Alert.alert(t('payment.error'), t('payment.paymentError'));
     }
+  };
+
+  // Intercept navigation to handle deep links
+  const handleShouldStartLoadWithRequest = (request) => {
+    console.log('Navigation request:', request.url);
+
+    // Intercept deep link
+    if (request.url.startsWith('bassamshipping://')) {
+      const urlParts = request.url.split('?');
+      const params = new URLSearchParams(urlParts[1] || '');
+      const status = params.get('status');
+      const paymentId = params.get('paymentId');
+
+      console.log('Deep link intercepted:', { status, paymentId, reservationId });
+
+      // Navigate to payment-result screen with all statuses
+      router.replace({
+        pathname: '/payment-result',
+        params: {
+          status: status || 'processing',
+          paymentId: paymentId || '',
+          reservationId: reservationId || ''
+        }
+      });
+
+      // Prevent WebView from trying to load the deep link
+      return false;
+    }
+
+    // Allow all other URLs
+    return true;
   };
 
   if (!paymentData) {
@@ -119,8 +127,8 @@ const PaymentWebViewScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="white" />
-      
       <View style={styles.container}>
+
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.headerBackButton}>
@@ -140,9 +148,10 @@ const PaymentWebViewScreen = () => {
         {/* WebView */}
         <WebView
           ref={webViewRef}
-          source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}/payment.html` }}
+          source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}/payment.html?lang=${i18n.language}` }}
           onMessage={handleWebViewMessage}
           onLoadEnd={() => setLoading(false)}
+          onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
           style={styles.webView}
           javaScriptEnabled={true}
           domStorageEnabled={true}
@@ -155,13 +164,8 @@ const PaymentWebViewScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#fbfcff',
-  },
-  container: {
-    flex: 1,
-  },
+  safeArea: { flex: 1, backgroundColor: '#fbfcff' },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -172,58 +176,39 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     zIndex: 10,
   },
-  headerBackButton: {
-    position: 'absolute',
-    left: 24,
-    bottom: 20,
+  headerBackButton: { position: 'absolute', left: 24, bottom: 20 },
+  headerTitle: { fontFamily: 'Inter-Medium', fontSize: 16, color: 'black' },
+  loadingContainer: { 
+    position: 'absolute', 
+    top: '50%', 
+    left: 0, 
+    right: 0, 
+    alignItems: 'center', 
+    gap: 16, 
+    zIndex: 5 
   },
-  headerTitle: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 16,
-    color: 'black',
+  loadingText: { fontFamily: 'Inter-Regular', fontSize: 16, color: '#5c7095' },
+  webView: { flex: 1, backgroundColor: '#f5f5f5' },
+  errorContainer: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: 24, 
+    gap: 24 
   },
-  loadingContainer: {
-    position: 'absolute',
-    top: '50%',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    gap: 16,
-    zIndex: 5,
+  errorText: { 
+    fontFamily: 'Inter-Regular', 
+    fontSize: 16, 
+    color: '#c33', 
+    textAlign: 'center' 
   },
-  loadingText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 16,
-    color: '#5c7095',
+  backButton: { 
+    backgroundColor: '#06193b', 
+    borderRadius: 16, 
+    paddingVertical: 12, 
+    paddingHorizontal: 32 
   },
-  webView: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-    gap: 24,
-  },
-  errorText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 16,
-    color: '#c33',
-    textAlign: 'center',
-  },
-  backButton: {
-    backgroundColor: '#06193b',
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-  },
-  backButtonText: {
-    fontFamily: 'Inter-Bold',
-    fontSize: 16,
-    color: 'white',
-  },
+  backButtonText: { fontFamily: 'Inter-Bold', fontSize: 16, color: 'white' },
 });
 
 export default PaymentWebViewScreen;
