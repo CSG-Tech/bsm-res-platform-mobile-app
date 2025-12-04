@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -65,7 +65,7 @@ const SearchResultsScreen = () => {
   const router = useRouter();
   const searchParams = useLocalSearchParams();
   const isRTL = i18n.language === 'ar';
-
+  const flatListRef = useRef(null); 
   const navigationItems = [
     { icon: require('../../assets/images/icons/Home.png'), label: t('navigation.home'), isActive: true },
     { icon: require('../../assets/images/icons/Tickets.png'), label: t('navigation.tickets'), isActive: false },
@@ -95,6 +95,19 @@ const SearchResultsScreen = () => {
       }
     }
   }, [searchParams.passengers]);
+
+   useEffect(() => {
+    const selectedIndex = dateOptions.findIndex(item => item.isSelected);
+    if (selectedIndex !== -1 && flatListRef.current) {
+      setTimeout(() => {
+        flatListRef.current.scrollToIndex({
+          index: selectedIndex,
+          animated: true,
+          viewPosition: 0, 
+        });
+      }, 100); 
+    }
+  }, [selectedDate, dateOptions]);
 
   const vesselData = useMemo(() => {
     if (!Array.isArray(tripsData) || tripsData.length === 0) return [];
@@ -273,6 +286,7 @@ const SearchResultsScreen = () => {
               />
             </TouchableOpacity>
             <FlatList
+              ref={flatListRef}
               horizontal
               data={dateOptions}
               showsHorizontalScrollIndicator={false}

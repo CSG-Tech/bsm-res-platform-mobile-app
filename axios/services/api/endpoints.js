@@ -45,5 +45,6 @@ export const ENDPOINTS = {
     CREATE: '/reservations',
     UPDATE_PASSENGERS: (reservationId) => `/reservations/${reservationId}/passengers`,
     EXPIRE: (reservationId) => `/reservations/${reservationId}/expire`,
+    GET_DETAILS: (reservationId) => `/reservations/${reservationId}`,
   },
 };

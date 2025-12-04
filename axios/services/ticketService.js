@@ -73,3 +73,11 @@ export const expireReservation = async (reservationId) => {
   console.log('Expire Reservation Response:', res.data);
   return res.data;
 };
+
+// 🔸 Get Reservation Details
+export const getReservationDetails = async (reservationId) => {
+  console.log('➡️ getReservationDetails URL:', ENDPOINTS.RESERVATIONS.GET_DETAILS(reservationId));
+  const res = await api.get(ENDPOINTS.RESERVATIONS.GET_DETAILS(reservationId));
+  console.log('Reservation Details Response:', res.data);
+  return res.data;
+};

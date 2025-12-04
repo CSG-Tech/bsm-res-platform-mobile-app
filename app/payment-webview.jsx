@@ -34,6 +34,9 @@ const PaymentWebViewScreen = () => {
 
   const reservationId = params.reservationId;
 
+  // Define success statuses
+  const successStatuses = ['paid', 'authorized', 'success'];
+
   // Handle messages from WebView
   const handleWebViewMessage = (event) => {
     try {
@@ -55,18 +58,31 @@ const PaymentWebViewScreen = () => {
         case 'PAYMENT_FAILED':
         case 'PAYMENT_ERROR':
         case 'PAYMENT_PROCESSING':
-          // All payment outcomes go to payment-result screen
           const paymentObj = message.payment ? JSON.parse(message.payment) : null;
-          router.replace({
-            pathname: '/payment-result',
-            params: {
-              status: message.type === 'PAYMENT_SUCCESS' ? 'paid' :
-                      message.type === 'PAYMENT_FAILED' ? 'failed' :
-                      message.type === 'PAYMENT_PROCESSING' ? 'processing' : 'error',
-              reservationId,
-              paymentId: paymentObj?.id || message.paymentId || ''
-            }
-          });
+          const status = message.type === 'PAYMENT_SUCCESS' ? 'paid' :
+                        message.type === 'PAYMENT_FAILED' ? 'failed' :
+                        message.type === 'PAYMENT_PROCESSING' ? 'processing' : 'error';
+          
+          // Route based on status
+          if (successStatuses.includes(status)) {
+            router.replace({
+              pathname: '/confirmation',
+              params: {
+                status,
+                reservationId,
+                paymentId: paymentObj?.id || message.paymentId || ''
+              }
+            });
+          } else {
+            router.replace({
+              pathname: '/failed-booking',
+              params: {
+                status,
+                reservationId,
+                paymentId: paymentObj?.id || message.paymentId || ''
+              }
+            });
+          }
           break;
 
         default:
@@ -84,21 +100,45 @@ const PaymentWebViewScreen = () => {
     // Intercept deep link
     if (request.url.startsWith('bassamshipping://')) {
       const urlParts = request.url.split('?');
-      const params = new URLSearchParams(urlParts[1] || '');
-      const status = params.get('status');
-      const paymentId = params.get('paymentId');
+      const path = urlParts[0].replace('bassamshipping://', '');
+      const urlParams = new URLSearchParams(urlParts[1] || '');
+      const status = urlParams.get('status');
+      const paymentId = urlParams.get('paymentId');
 
-      console.log('Deep link intercepted:', { status, paymentId, reservationId });
+      console.log('Deep link intercepted:', { path, status, paymentId, reservationId });
 
-      // Navigate to payment-result screen with all statuses
-      router.replace({
-        pathname: '/payment-result',
-        params: {
-          status: status || 'processing',
-          paymentId: paymentId || '',
-          reservationId: reservationId || ''
+      // If the deep link already has the correct path, use it
+      if (path === 'confirmation' || path === 'failed-booking') {
+        router.replace({
+          pathname: `/${path}`,
+          params: {
+            status: status || 'processing',
+            paymentId: paymentId || '',
+            reservationId: reservationId || ''
+          }
+        });
+      } else {
+        // Otherwise, determine the path based on status
+        if (successStatuses.includes(status?.toLowerCase())) {
+          router.replace({
+            pathname: '/confirmation',
+            params: {
+              status: status || 'paid',
+              paymentId: paymentId || '',
+              reservationId: reservationId || ''
+            }
+          });
+        } else {
+          router.replace({
+            pathname: '/failed-booking',
+            params: {
+              status: status || 'failed',
+              paymentId: paymentId || '',
+              reservationId: reservationId || ''
+            }
+          });
         }
-      });
+      }
 
       // Prevent WebView from trying to load the deep link
       return false;
