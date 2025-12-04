@@ -17,7 +17,6 @@ import {
   View
 } from 'react-native';
 
-// --- Static Data Definitions ---
 const getPassengerTypeOptions = (t) => [
   { id: 'adult', label: t('passenger.adult') },
   { id: 'child', label: t('passenger.child') },
@@ -41,7 +40,6 @@ const getVisaTypeOptions = (t) => [
   { id: 'resident', label: t('reservation.visaResident') },
 ];
 
-// --- Helper Components ---
 
 const FloatingLabelInput = ({ label, placeholder, value, onChangeText }) => (
   <View style={styles.inputContainer}>
@@ -354,7 +352,6 @@ const ReservationScreen = () => {
   const currentPassengerDetails = allPassengersDetails.find(p => p.id === selectedPassengerId);
 
   const handleContinue = () => {
-    // Extract and Provide Defaults if missing
     const vesselName = params.vesselName || "Amman";
     const price = params.price || 230.00;
     const fromPort = params.fromPort || "Jeddah Islamic Port"; 
@@ -367,8 +364,8 @@ const ReservationScreen = () => {
         passengersData: JSON.stringify(allPassengersDetails),
         vesselName: vesselName,
         price: price,
-        fromPort: fromPort, // This will now always have a value
-        toPort: toPort      // This will now always have a value
+        fromPort: fromPort, 
+        toPort: toPort      
       }
     });
   };

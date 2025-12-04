@@ -58,6 +58,11 @@ export default function RootLayout() {
       <Stack.Screen name="summary" options={{ headerShown: false }} />
       <Stack.Screen name="payment" options={{ headerShown: false }} />
       <Stack.Screen name="eticket" options={{ headerShown: false }} />
+      <Stack.Screen
+  name="Confirmation"
+  options={{ headerShown: false }} 
+/>
+      <Stack.Screen name="failedbooking" options={{ headerShown: false }} />
     </Stack>
   );
 }

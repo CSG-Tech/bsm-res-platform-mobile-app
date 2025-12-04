@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -342,13 +342,20 @@ const BookingScreen = () => {
   };
   
   const changeLanguage = async (lang) => {
-    if (lang === i18n.language) return;
+    if (lang === i18n.language) {
+      return;
+    }
     try {
+      await i18n.changeLanguage(lang);
+
       await AsyncStorage.setItem('user-language', lang);
-      if (lang === 'en') I18nManager.forceRTL(lang === 'ar');
-      else I18nManager.forceRTL(lang === 'en');
+
+      const shouldBeRTL = lang === 'ar';
+      I18nManager.forceRTL(shouldBeRTL);
+      
     } catch (e) {
       console.error("Failed to change language", e);
+      Alert.alert("Error", "Could not switch language.");
     }
   };
 

@@ -149,5 +149,36 @@
     "changeDegree": "Change Degree",
     "reschedule": "Reschedule",
     "cancelBooking": "Cancel Booking"
-  }
+  },
+  "confirmation": {
+    "headerTitle": "Booking Confirmation",
+    "successTitle": "Booking Confirmed",
+    "successMessage": "Thank you for booking with Bassam Shipping. Please take a moment to review your itinerary and e-ticket below. For any assistance or inquiries, please email us at <1>emailaddress@example.com</1> or call us at <3>+201234567890</3>.",
+    "vesselName": "Vessel Name",
+    "estPrice": "Est. Price",
+    "pax": "/pax",
+    "departure": "Departure",
+    "arrival": "Arrival",
+    "transactionDetails": "Transaction Details",
+    "reservationNumber": "Reservation Number",
+    "paymentMethod": "Payment Method",
+    "paymentState": "Payment State",
+    "totalPrice": "Total Price",
+    "priceDetails": "Price details",
+    "passengers": "Passenger(s)",
+    "adultEconomy": "Adult (economy) x{{count}}",
+    "subtotal": "Subtotal",
+    "taxes": "Taxes",
+    "total": "Total",
+    "passenger": "Passenger",
+    "pnr": "PNR",
+    "contactDetails": "Contact Details"
+  },
+  "failedBooking": {
+  "headerTitle": "Transaction Details",
+  "alertTitle": "Payment Failed",
+  "alertMessage": "Payment could not be completed.\nPlease try again or use another payment method.\nIf the problem persists, contact support at <1>emailaddress@example.com</1> or <3>+201234567890</3>.",
+  "tryAgain": "Try Again",
+  "changePaymentMethod": "Change Payment Method"
+}
 }

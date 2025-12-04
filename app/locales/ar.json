@@ -150,5 +150,36 @@
     "changeDegree": "تغيير الدرجة",
     "reschedule": "إعادة جدولة",
     "cancelBooking": "إلغاء الحجز"
-  }
+  },
+  "confirmation": {
+    "headerTitle": "تأكيد الحجز",
+    "successTitle": "تم تأكيد الحجز",
+    "successMessage": "شكراً لك على الحجز مع شركة بسام للشحن. يرجى مراجعة خط سير رحلتك وتذكرتك الإلكترونية أدناه. لأية مساعدة أو استفسارات، يرجى مراسلتنا على <1>emailaddress@example.com</1> أو الاتصال بنا على <3>+201234567890</3>.",
+    "vesselName": "اسم السفينة",
+    "estPrice": "السعر التقديري",
+    "pax": "/للشخص",
+    "departure": "المغادرة",
+    "arrival": "الوصول",
+    "transactionDetails": "تفاصيل المعاملة",
+    "reservationNumber": "رقم الحجز",
+    "paymentMethod": "طريقة الدفع",
+    "paymentState": "حالة الدفع",
+    "totalPrice": "السعر الإجمالي",
+    "priceDetails": "تفاصيل السعر",
+    "passengers": "الركاب",
+    "adultEconomy": "بالغ (اقتصادي) ×{{count}}",
+    "subtotal": "المجموع الفرعي",
+    "taxes": "الضرائب",
+    "total": "الإجمالي",
+    "passenger": "الراكب",
+    "pnr": "PNR",
+    "contactDetails": "بيانات الاتصال"
+  },
+  "failedBooking": {
+  "headerTitle": "تفاصيل المعاملة",
+  "alertTitle": "فشل الدفع",
+  "alertMessage": "تعذر إتمام عملية الدفع.\nيرجى المحاولة مرة أخرى أو استخدام طريقة دفع أخرى.\nإذا استمرت المشكلة، اتصل بالدعم على <1>emailaddress@example.com</1> أو <3>+201234567890</3>.",
+  "tryAgain": "حاول مرة أخرى",
+  "changePaymentMethod": "تغيير طريقة الدفع"
+}
 }

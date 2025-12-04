@@ -1,9 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   I18nManager,
   Image,
@@ -12,7 +11,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 // import { getTripsByDateAndLine } from '../../axios/services/searchService';
@@ -66,7 +65,7 @@ const SearchResultsScreen = () => {
   const router = useRouter();
   const searchParams = useLocalSearchParams();
   const isRTL = i18n.language === 'ar';
-
+  const flatListRef = useRef(null); 
   const navigationItems = [
       { icon: require('../../assets/images/icons/Home.png'), label: t('navigation.home'), isActive: true },
       { icon: require('../../assets/images/icons/Tickets.png'), label: t('navigation.tickets'), isActive: false },
@@ -95,6 +94,20 @@ const SearchResultsScreen = () => {
     }
   }, [searchParams.passengers]);
 
+
+   useEffect(() => {
+    const selectedIndex = dateOptions.findIndex(item => item.isSelected);
+  
+    if (selectedIndex !== -1 && flatListRef.current) {
+      setTimeout(() => {
+        flatListRef.current.scrollToIndex({
+          index: selectedIndex,
+          animated: true,
+          viewPosition: 0, 
+        });
+      }, 100); 
+    }
+  }, [selectedDate, dateOptions]);
 
   const vesselData = useMemo(() => {
     if (!Array.isArray(tripsData)) return [];
@@ -135,16 +148,16 @@ const SearchResultsScreen = () => {
     });
   };
 
-  const handleDateSelect = async (dateOption) => {
+  const handleDateSelect = (dateOption) => {
     if (dateOption.isSelected || isLoadingTrips) return;
-
+  
+    setSelectedDate(dateOption.fullDate); 
+  
     setIsLoadingTrips(true);
-    setSelectedDate(dateOption.fullDate);
-    
     setTimeout(() => {
       setTripsData(STATIC_TRIPS_DATA);
       setIsLoadingTrips(false);
-    }, 500); 
+    }, 500);
   };
 
   const styles = getStyles(isRTL);
@@ -185,6 +198,7 @@ const SearchResultsScreen = () => {
               />
             </TouchableOpacity>
             <FlatList
+              ref={flatListRef} 
               horizontal
               data={dateOptions}
               showsHorizontalScrollIndicator={false}
