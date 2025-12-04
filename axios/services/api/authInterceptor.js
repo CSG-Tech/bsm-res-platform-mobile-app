@@ -2,6 +2,7 @@ import axios from 'axios';
 import Constants from 'expo-constants';
 import { clearTokens, getTokens, saveTokens } from '../../storage/tokenStorage';
 import { ENDPOINTS } from './endpoints';
+import { getOrCreateDeviceId } from '../../storage/deviceStorage';
 const { API_BASE_URL_DEV, API_BASE_URL_PROD } = Constants.expoConfig.extra;
 
 const baseURL = __DEV__ ? API_BASE_URL_DEV : API_BASE_URL_PROD;
@@ -11,13 +12,26 @@ export const attachAuthInterceptors = (api) => {
   // Add access token to all requests
   api.interceptors.request.use(async (config) => {
     const { accessToken } = await getTokens();
-    if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
-    console.log('➡️ API REQUEST:', {
-        method: config.method?.toUpperCase(),
-        url: `${config.baseURL || baseURL}${config.url}`,
-        headers: config.headers,
+    if (accessToken) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+
+    // Safe URL normalization for logging (do NOT write back to config.url)
+    try {
+      const base = config.baseURL || baseURL || '';
+      const u = config.url || '';
+      const normalize = (b, p) =>
+        `${String(b).replace(/\/+$/, '')}/${String(p).replace(/^\/+/, '')}`;
+      const safeFullUrl = u.startsWith('http') ? u : normalize(base, u);
+      console.log('➡️ API REQUEST:', {
+        method: (config.method || '').toUpperCase(),
+        url: safeFullUrl,
         data: config.data || null,
       });
+    } catch (e) {
+      console.warn('Request logging error', e);
+    }
 
     return config;
   });
@@ -37,7 +51,7 @@ export const attachAuthInterceptors = (api) => {
           // refresh manually
           const refreshResponse = await axios.post(`${baseURL}${ENDPOINTS.AUTH.REFRESH}`, {
             refreshToken,
-            deviceId: 'mobile-app',
+            deviceId: await getOrCreateDeviceId(),
           });
 
           const newTokens = refreshResponse.data;

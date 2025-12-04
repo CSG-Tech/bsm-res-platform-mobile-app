@@ -21,23 +21,24 @@ const VesselDetailsScreen = ({ route }) => {
   const params = route.params || {};
 
   const facilities = [
-    { icon: require('../assets/images/luggage-icon.png'), label: t('facilities.luggage') },
-    { icon: require('../assets/images/food-icon.png'), label: t('facilities.food') },
-    { icon: require('../assets/images/internet-icon.png'), label: t('facilities.internet') },
-    { icon: require('../assets/images/schedule.png'), label: t('facilities.reschedule') },
-    { icon: require('../assets/images/refund-icon.png'), label: t('facilities.refundable') },
+    { icon: require('../../assets/images/luggage-icon.png'), label: t('facilities.luggage') },
+    { icon: require('../../assets/images/food-icon.png'), label: t('facilities.food') },
+    { icon: require('../../assets/images/internet-icon.png'), label: t('facilities.internet') },
+    { icon: require('../../assets/images/schedule.png'), label: t('facilities.reschedule') },
+    { icon: require('../../assets/images/refund-icon.png'), label: t('facilities.refundable') },
   ];
 
   const handleBookVessel = () => {
-    router.push('/reservation');
+    router.push({pathname:'/reservation', params: params});
   };
 
   const vessel = {
     vesselName: params.vesselName,
-    price: params.price,
-    departureDate: params.departureDate,
+    price: params.estimatedCost,
+    currency: params.currencyPrint,
+    departureDate: params.startDate,
     departureTime: params.departureTime,
-    arrivalDate: params.arrivalDate,
+    arrivalDate: params.endDate,
     arrivalTime: params.arrivalTime,
     duration: params.duration,
   };
@@ -65,6 +66,7 @@ const VesselDetailsScreen = ({ route }) => {
               <View style={styles.priceContainer}>
                 <Text style={styles.priceLabel}>{t('details.estPrice')}</Text>
                 <Text>
+                  <Text style={styles.priceValue}>{vessel.currency}</Text>
                   <Text style={styles.priceValue}>{vessel.price}</Text>
                   <Text style={styles.pricePax}>{t('details.pax')}</Text>
                 </Text>
@@ -74,14 +76,14 @@ const VesselDetailsScreen = ({ route }) => {
             <View style={[styles.timelineSection, rtlFlexDirection]}>
               <View style={styles.timelineVisuals}>
                 <View style={styles.timelineCircle} />
-                <Image source={require('../assets/images/dotted-line.png')} style={styles.dottedLine} />
+                <Image source={require('../../assets/images/dotted-line.png')} style={styles.dottedLine} />
                 <View style={styles.timelineCircle} />
               </View>
 
               <View style={styles.timelineDetails}>
                <View style={[styles.timelineBlock, rtlAlignItems]}>
                   <View style={[styles.badge, rtlFlexDirection]}>
-                    <Image source={require('../assets/images/icons/from-icon.png')} style={styles.badgeIcon} />
+                    <Image source={require('../../assets/images/icons/from-icon.png')} style={styles.badgeIcon} />
                     <Text style={styles.badgeText}>{t('details.departure')}</Text>
                   </View>
                   <Text style={[styles.portName, rtlTextAlign]}>{fromPort}</Text>
@@ -96,7 +98,7 @@ const VesselDetailsScreen = ({ route }) => {
 
                 <View style={[styles.timelineBlock, rtlAlignItems]}>
                   <View style={[styles.badge, rtlFlexDirection]}>
-                    <Image source={require('../assets/images/icons/to-icon.png')} style={styles.badgeIcon} />
+                    <Image source={require('../../assets/images/icons/to-icon.png')} style={styles.badgeIcon} />
                     <Text style={styles.badgeText}>{t('details.arrival')}</Text>
                   </View>
                   <Text style={[styles.portName, rtlTextAlign]}>{toPort}</Text>

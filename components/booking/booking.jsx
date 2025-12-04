@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getAllDegrees, getFromPorts, getToPorts, getTripsByDateAndLine, } from '../../axios/services/searchService';
+import { getAllClasses, getFromPorts, getToPorts, getTripsByDateAndLine, } from '../../axios/services/searchService';
 import { PassengerSelectionModal } from './PassengerSelectionModal';
 
 const CustomDay = ({ date, state, marking, onPress }) => {
@@ -189,7 +189,7 @@ const BookingScreen = () => {
   const [isLoadingPorts, setIsLoadingPorts] = useState(false);
   const [fromPorts, setFromPorts] = useState([]);
   const [toPorts, setToPorts] = useState([]);
-  const [degrees, setDegrees] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [isLoadingDegrees, setIsLoadingDegrees] = useState(false);
 
   const CLASSES = [
@@ -214,17 +214,17 @@ const BookingScreen = () => {
   const [isClassModalVisible, setClassModalVisible] = useState(false);
   const [isCalendarModalVisible, setCalendarModalVisible] = useState(false);
   const [isPassengerModalVisible, setPassengerModalVisible] = useState(false);
-  const filteredDegrees = React.useMemo(() => {
-    if (!degrees || !Array.isArray(degrees)) {
+  const filteredClasses = React.useMemo(() => {
+    if (!classes || !Array.isArray(classes)) {
         return []; 
     }
 
     if (i18n.language === 'en') {
-        return degrees.filter(degree => degree.degreeEnglishName);
+        return classes.filter(cls => cls.classEnglishName);
     } else {
-        return degrees.filter(degree => degree.degreeArabName);
+        return classes.filter(cls => cls.classArabName);
     }
-}, [degrees, i18n.language]);
+}, [classes, i18n.language]);
 
   useEffect(() => {
    const loadFromPorts = async () => {
@@ -246,15 +246,15 @@ const BookingScreen = () => {
     const loadAllDegrees = async () => {
       try{
         setIsLoadingDegrees(true);
-        const response = await getAllDegrees();
+        const response = await getAllClasses();
         if (response && response.data) {
-      setDegrees(response.data); 
+      setClasses(response.data); 
       } else {
-        setDegrees([]); 
+        setClasses([]); 
       }
       } catch (error) {
-        console.error('Error fetching degrees: ', error);
-        Alert.alert('Error', 'Could not load degrees from the server.');
+        console.error('Error fetching classs: ', error);
+        Alert.alert('Error', 'Could not load classs from the server.');
       } finally {
         setIsLoadingDegrees(false);
       }
@@ -279,7 +279,8 @@ const BookingScreen = () => {
     toPort: i18n.language === 'en' ? toPort.portEnglishName : toPort.portArabName,
     travelDate: travelDate.toISOString(),
     passengers: JSON.stringify(passengers),
-    travelClass: i18n.language === 'en' ? selectedClass.degreeEnglishName : selectedClass.degreeArabName,
+    travelClass: i18n.language === 'en' ? selectedClass.classEnglishName : selectedClass.classArabName,
+    travelClassId: selectedClass.oracleClassId,
   };
 
   router.push({
@@ -290,16 +291,12 @@ const BookingScreen = () => {
   const changeLanguage = async (lang) => {
     if (lang === i18n.language) return;
     try {
-      await AsyncStorage.setItem('user-language', lang);
-      if (lang === 'en')
-        I18nManager.forceRTL(lang === 'ar');
-      else
-        I18nManager.forceRTL(lang === 'en');
+      await i18n.changeLanguage(lang); // This automatically saves via cacheUserLanguage
+      I18nManager.forceRTL(lang === 'ar'); // Fixed: was backwards
     } catch (e) {
       console.error("Failed to change language", e);
     }
   };
-
   const handleSwitchPorts = () => {
     setFromPort(toPort);
     setToPort(fromPort);
@@ -429,7 +426,7 @@ const BookingScreen = () => {
               <TouchableOpacity onPress={() => setClassModalVisible(true)}>
                 <View style={styles.inputButton}>
                   <Image source={require('../../assets/images/icons/class-icon.png')} style={styles.inputIcon} />
-                  <Text style={selectedClass ? styles.valueText : styles.placeholderText}>{selectedClass ? i18n.language == 'en' ?  selectedClass.degreeEnglishName : selectedClass.degreeArabName : t('booking.select')}</Text>
+                  <Text style={selectedClass ? styles.valueText : styles.placeholderText}>{selectedClass ? i18n.language == 'en' ?  selectedClass.classEnglishName : selectedClass.classArabName : t('booking.select')}</Text>
                   <View style={styles.labelContainer}><Text style={styles.labelText}>{t('booking.class')}</Text></View>
                 </View>
               </TouchableOpacity>
@@ -468,13 +465,13 @@ const BookingScreen = () => {
       <ListSelectionModal
         visible={isClassModalVisible}
         onClose={() => setClassModalVisible(false)}
-        data={filteredDegrees}
+        data={filteredClasses}
         onSelect={handleClassSelect}
         title={t('booking.class')}
         isRTL={isRTL}
-        keyField={"oracleCode"}
-        labelFieldAr={"degreeArabName"}
-        labelFieldEn={"degreeEnglishName"}
+        keyField={"oracleClassId"}
+        labelFieldAr={"classArabName"}
+        labelFieldEn={"classEnglishName"}
       />
 
       <CalendarModal
