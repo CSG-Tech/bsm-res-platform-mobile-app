@@ -16,6 +16,8 @@ import {
 } from 'react-native';
 import { clearPendingReservation } from '../../axios/storage/reservationStorage';
 import { getTripSummary, getReservationDetails } from '../../axios/services/ticketService';
+import { TouchableOpacity } from 'react-native'; 
+import { useClipboard } from '@react-native-clipboard/clipboard';
 
 const DetailCard = ({ title, children }) => (
   <View style={styles.card}>
@@ -24,19 +26,40 @@ const DetailCard = ({ title, children }) => (
   </View>
 );
 
-const DetailRow = ({ label, value, valueStyle, showCopy = false, children }) => (
-  <View style={[styles.detailRow, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
-    <Text style={styles.detailLabel}>{label}</Text>
-    {value ? (
-      <View style={[styles.valueContainer, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
-        <Text style={[styles.detailValue, valueStyle]}>{value}</Text>
-        {showCopy && <Copy size={20} color="#000" style={I18nManager.isRTL ? { marginRight: 8 } : { marginLeft: 8 }} />}
-      </View>
-    ) : (
-      children
-    )}
-  </View>
-);
+const DetailRow = ({ label, value, valueStyle, showCopy = false, children }) => {
+  const { copy } = useClipboard();
+  
+  const handleCopy = () => {
+    if (value) {
+      copy(value);
+      console.log('Copied:', value);
+      // Optional: Add toast feedback here
+    }
+  };
+
+  return (
+    <View style={[styles.detailRow, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      {value ? (
+        <View style={[styles.valueContainer, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
+          <Text style={[styles.detailValue, valueStyle]}>{value}</Text>
+          {showCopy && (
+            <TouchableOpacity
+              onPress={handleCopy}
+              style={I18nManager.isRTL ? { marginRight: 8 } : { marginLeft: 8 }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              activeOpacity={0.7}
+            >
+              <Copy size={20} color="#000" />
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : (
+        children
+      )}
+    </View>
+  );
+};
 
 const ConfirmationScreen = () => {
   const router = useRouter();

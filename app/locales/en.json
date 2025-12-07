@@ -143,7 +143,11 @@
     "completePayment": "Complete Payment",
     "loadingPayment": "Preparing Payment",
     "paymentFailed": "Failed to prepare payment, please try again",
-    "invalidPaymentData": "Invalid payment data received"
+    "invalidPaymentData": "Invalid payment data received",
+    "resume": "Resume",
+    "cancel": "Cancel",
+    "resumeOrCancelMessage": "Would you like to continue or cancel the payment?",
+    "resumeOrCancel": "Payment Action"
   },
   "eticket": {
     "headerTitle": "E-Ticket",

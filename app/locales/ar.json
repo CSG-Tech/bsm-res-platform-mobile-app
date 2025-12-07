@@ -143,7 +143,11 @@
     "completePayment":"اتمام الدفع",
     "loadingPayment":"جاري تهيئة الدفع",
     "paymentFailed":"فشل في تهيئة الدفع، يرجى المحاولة مرة أخرى",
-    "invalidPaymentData":"تم استلام بيانات دفع غير صالحة"
+    "invalidPaymentData":"تم استلام بيانات دفع غير صالحة",
+    "resume": "استئناف",
+    "cancel": "الغاء",
+    "resumeOrCancelMessage": "هل ترغب في متابعة الدفع أم إلغاؤه؟",
+    "resumeOrCancel": "إجراء الدفع"
   },
   
    "eticket": {

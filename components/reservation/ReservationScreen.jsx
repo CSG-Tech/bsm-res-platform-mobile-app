@@ -23,13 +23,13 @@ import { useTranslation } from "react-i18next";
 import { ArrowLeft, ChevronDown, Plus, X } from "lucide-react-native";
 import { FloatingLabelDatePicker } from "./FloatingLabelDatePicker";
 
-// API helpers - adjust paths to your project
+// API helpers
 import {
   getAllDegrees,
   getAllVisas,
   getAllNationalities,
   getAllPrices,
-} from "../../axios/services/reservationService"; // <<— ensure this path is correct
+} from "../../axios/services/reservationService";
 
 /* -------------------------------------
    Utilities
@@ -45,8 +45,8 @@ const createEmptyPassenger = (id) => ({
   firstName: "",
   middleName: "",
   lastName: "",
-  gender: null, // 'M' or 'F'
-  nationality: null, // object or code
+  gender: null,
+  nationality: null,
   visaType: null,
   degree: null,
   passportNumber: "",
@@ -56,9 +56,7 @@ const createEmptyPassenger = (id) => ({
 });
 
 /* -------------------------------------
-   FloatingLabelSelect - reusable
-   supports: options (static) OR fetchOptions (async)
-   NOTE: receives `styles` prop from parent
+   FloatingLabelSelect
 -------------------------------------*/
 const FloatingLabelSelect = ({
   label,
@@ -81,6 +79,7 @@ const FloatingLabelSelect = ({
   const cacheRef = FloatingLabelSelect._cache || (FloatingLabelSelect._cache = new Map());
 
   const openSelect = async () => {
+    Keyboard.dismiss();
     setOpen(true);
     setQuery("");
     if (options && options.length) {
@@ -115,7 +114,7 @@ const FloatingLabelSelect = ({
     return items.filter((it) => {
       const labelText =
         (renderItemLabel && renderItemLabel(it, i18n.language)) ||
-        it.name || // fallback generic
+        it.name ||
         it.degreeEnglishName || it.degreeArabName ||
         it.natName || it.natArbName ||
         it.visaTypeName || it.visaTypeArbName ||
@@ -126,7 +125,7 @@ const FloatingLabelSelect = ({
 
       return String(labelText).toLowerCase().includes(q);
     });
-    }, [items, query, i18n.language]);
+  }, [items, query, i18n.language]);
 
   return (
     <>
@@ -139,83 +138,100 @@ const FloatingLabelSelect = ({
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <View style={styles.modalHeader}>
-              <TextInput
-                placeholder={t("reservation.search")}
-                value={query}
-                onChangeText={setQuery}
-                style={styles.modalSearch}
-                autoFocus
-              />
-              <TouchableOpacity onPress={() => setOpen(false)} style={styles.modalClose}>
-                <Text style={styles.modalCloseText}>{t("reservation.close")}</Text>
-              </TouchableOpacity>
-            </View>
-
-            {loading ? (
-              <ActivityIndicator size="large" color="#092863" style={{ marginTop: 24 }} />
-            ) : (
-              <FlatList
-                data={filtered}
-                keyExtractor={(item, idx) =>
-                  String(
-                    item?.oracleDegreeCode ??
-                    item?.oracleNatCode ??
-                    item?.oracleVisaTypeCode ??
-                    item?.id ??
-                    idx
-                  )
-                }
-                renderItem={({ item }) => {
-                  const labelText =
-                    (renderItemLabel && renderItemLabel(item, i18n.language)) ||
-                    item?.name || // generic fallback
-                    item?.degreeEnglishName || item?.degreeArabName ||
-                    item?.natName || item?.natArbName ||
-                    item?.visaTypeName || item?.visaTypeArbName ||
-                    item?.currencyPrint ||
-                    item?.countryName ||
-                    item?.label ||
-                    "";
-
-                  return (
-                    <TouchableOpacity
-                      style={styles.modalItem}
-                      onPress={() => {
-                        onSelect(item);
-                        setOpen(false);
-                      }}
-                    >
-                      <Text style={styles.modalItemText}>{labelText}</Text>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <TouchableWithoutFeedback onPress={() => setOpen(false)}>
+            <View style={styles.modalOverlay}>
+              <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+                <View style={styles.modalBox}>
+                  <View style={styles.modalHeader}>
+                    <TextInput
+                      placeholder={t("reservation.search")}
+                      value={query}
+                      onChangeText={setQuery}
+                      style={styles.modalSearch}
+                      autoFocus
+                    />
+                    <TouchableOpacity onPress={() => setOpen(false)} style={styles.modalClose}>
+                      <Text style={styles.modalCloseText}>{t("reservation.close")}</Text>
                     </TouchableOpacity>
-                  );
-                }}
-                ListEmptyComponent={
-                  <Text style={styles.modalNoResults}>{t("reservation.noResults")}</Text>
-                }
-              />
-            )}
-          </View>
-        </View>
+                  </View>
+
+                  {loading ? (
+                    <ActivityIndicator size="large" color="#092863" style={{ marginTop: 24 }} />
+                  ) : (
+                    <FlatList
+                      data={filtered}
+                      keyExtractor={(item, idx) =>
+                        String(
+                          item?.oracleDegreeCode ??
+                          item?.oracleNatCode ??
+                          item?.oracleVisaTypeCode ??
+                          item?.id ??
+                          idx
+                        )
+                      }
+                      keyboardShouldPersistTaps="handled"
+                      renderItem={({ item }) => {
+                        const labelText =
+                          (renderItemLabel && renderItemLabel(item, i18n.language)) ||
+                          item?.name ||
+                          item?.degreeEnglishName || item?.degreeArabName ||
+                          item?.natName || item?.natArbName ||
+                          item?.visaTypeName || item?.visaTypeArbName ||
+                          item?.currencyPrint ||
+                          item?.countryName ||
+                          item?.label ||
+                          "";
+
+                        return (
+                          <TouchableOpacity
+                            style={styles.modalItem}
+                            onPress={() => {
+                              onSelect(item);
+                              setOpen(false);
+                            }}
+                          >
+                            <Text style={styles.modalItemText}>{labelText}</Text>
+                          </TouchableOpacity>
+                        );
+                      }}
+                      ListEmptyComponent={
+                        <Text style={styles.modalNoResults}>{t("reservation.noResults")}</Text>
+                      }
+                    />
+                  )}
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </Modal>
     </>
   );
 };
 
 /* -------------------------------------
-   FloatingLabelInput (uses styles prop)
+   FloatingLabelInput
 -------------------------------------*/
-const FloatingLabelInput = ({ label, placeholder, value, onChangeText, styles }) => (
+const FloatingLabelInput = ({ label, placeholder, value, onChangeText, styles, onFocus }) => (
   <View style={styles.inputContainer}>
     <Text style={[styles.inputLabel, I18nManager.isRTL ? { right: 14 } : { left: 14 }]}>{label}</Text>
-    <TextInput placeholder={placeholder} placeholderTextColor="#b6bdcf" style={[styles.textInput, { textAlign: I18nManager.isRTL ? "right" : "left" }]} value={value} onChangeText={onChangeText} />
+    <TextInput 
+      placeholder={placeholder} 
+      placeholderTextColor="#b6bdcf" 
+      style={[styles.textInput, { textAlign: I18nManager.isRTL ? "right" : "left" }]} 
+      value={value} 
+      onChangeText={onChangeText}
+      onFocus={onFocus}
+    />
   </View>
 );
 
 /* -------------------------------------
-   PassengerInformationSection (uses styles prop)
+   PassengerInformationSection
 -------------------------------------*/
 const PassengerInformationSection = ({
   passengers,
@@ -258,11 +274,28 @@ const PassengerInformationSection = ({
 );
 
 /* -------------------------------------
-   TravelDetailsSection - uses FloatingLabelSelect & styles prop
+   TravelDetailsSection
 -------------------------------------*/
-const TravelDetailsSection = ({ passengerDetails, onInputChange, t, tripSerial, styles }) => {
+const TravelDetailsSection = ({ passengerDetails, onInputChange, t, tripSerial, styles, scrollViewRef }) => {
   if (!passengerDetails) return null;
   const { i18n } = useTranslation();
+  
+  const inputRefs = React.useRef({});
+
+  const handleInputFocus = (fieldName) => {
+    setTimeout(() => {
+      const ref = inputRefs.current[fieldName];
+      if (ref && scrollViewRef?.current) {
+        ref.measure((x, y, width, height, pageX, pageY) => {
+          scrollViewRef.current.scrollTo({
+            y: pageY - 150,
+            animated: true,
+          });
+        });
+      }
+    }, 100);
+  };
+
   const genderOptions = [
     { id: "M", label: t("reservation.male") || "Male" },
     { id: "F", label: t("reservation.female") || "Female" },
@@ -274,29 +307,38 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, t, tripSerial, 
         <Text style={styles.formSectionTitle}>{t("reservation.passengerInfo")}</Text>
 
         <View style={styles.inputRow}>
+          <View style={{flex: 1}} ref={(ref) => (inputRefs.current['firstName'] = ref)} collapsable={false}>
+            <FloatingLabelInput
+              label={t("reservation.firstName")}
+              placeholder={t("reservation.enter")}
+              value={passengerDetails.firstName}
+              onChangeText={(text) => onInputChange("firstName", text)}
+              onFocus={() => handleInputFocus('firstName')}
+              styles={styles}
+            />
+          </View>
+          <View style={{flex: 1}} ref={(ref) => (inputRefs.current['lastName'] = ref)} collapsable={false}>
+            <FloatingLabelInput
+              label={t("reservation.lastName")}
+              placeholder={t("reservation.enter")}
+              value={passengerDetails.lastName}
+              onChangeText={(text) => onInputChange("lastName", text)}
+              onFocus={() => handleInputFocus('lastName')}
+              styles={styles}
+            />
+          </View>
+        </View>
+
+        <View ref={(ref) => (inputRefs.current['middleName'] = ref)} collapsable={false}>
           <FloatingLabelInput
-            label={t("reservation.firstName")}
+            label={t("reservation.middleName")}
             placeholder={t("reservation.enter")}
-            value={passengerDetails.firstName}
-            onChangeText={(text) => onInputChange("firstName", text)}
-            styles={styles}
-          />
-          <FloatingLabelInput
-            label={t("reservation.lastName")}
-            placeholder={t("reservation.enter")}
-            value={passengerDetails.lastName}
-            onChangeText={(text) => onInputChange("lastName", text)}
+            value={passengerDetails.middleName}
+            onChangeText={(text) => onInputChange("middleName", text)}
+            onFocus={() => handleInputFocus('middleName')}
             styles={styles}
           />
         </View>
-
-        <FloatingLabelInput
-          label={t("reservation.middleName")}
-          placeholder={t("reservation.enter")}
-          value={passengerDetails.middleName}
-          onChangeText={(text) => onInputChange("middleName", text)}
-          styles={styles}
-        />
 
         <FloatingLabelSelect
           label={t("reservation.gender")}
@@ -319,28 +361,38 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, t, tripSerial, 
       <View style={styles.formSection}>
         <Text style={styles.formSectionTitle}>{t("reservation.travelDetails")}</Text>
 
-      <FloatingLabelSelect
-        label={t("reservation.nationality")}
-        placeholder={t("reservation.select")}
-        fetchOptions={getAllNationalities}
-        valueLabel={
-          passengerDetails.nationality
-            ? i18n.language === 'ar'
-              ? passengerDetails.nationality.natArbName
-              : passengerDetails.nationality.natName
-            : null
-        }
-        onSelect={(item) => onInputChange("nationality", item)}
-        renderItemLabel={(it, lang) => lang === "ar" ? it.natArbName : it.natName}
-        styles={styles}
-      />
+        <FloatingLabelSelect
+          label={t("reservation.nationality")}
+          placeholder={t("reservation.select")}
+          fetchOptions={getAllNationalities}
+          valueLabel={
+            passengerDetails.nationality
+              ? i18n.language === 'ar'
+                ? passengerDetails.nationality.natArbName
+                : passengerDetails.nationality.natName
+              : null
+          }
+          onSelect={(item) => onInputChange("nationality", item)}
+          renderItemLabel={(it, lang) => lang === "ar" ? it.natArbName : it.natName}
+          styles={styles}
+        />
 
-        <FloatingLabelInput label={t("reservation.birthplace")} placeholder={t("reservation.enter")} value={passengerDetails.birthplace} onChangeText={(text) => onInputChange("birthplace", text)} styles={styles} />
+        <View ref={(ref) => (inputRefs.current['birthplace'] = ref)} collapsable={false}>
+          <FloatingLabelInput 
+            label={t("reservation.birthplace")} 
+            placeholder={t("reservation.enter")} 
+            value={passengerDetails.birthplace} 
+            onChangeText={(text) => onInputChange("birthplace", text)}
+            onFocus={() => handleInputFocus('birthplace')}
+            styles={styles} 
+          />
+        </View>
+
         <FloatingLabelSelect
           label={t("reservation.class")}
           placeholder={t("reservation.select")}
           fetchOptions={(tripSerial) => getAllDegrees(tripSerial)}
-          tripSerialForDegrees={tripSerial} // passes tripSerial to the API
+          tripSerialForDegrees={tripSerial}
           valueLabel={
             passengerDetails.degree
               ? i18n.language === "ar"
@@ -354,7 +406,17 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, t, tripSerial, 
           }
           styles={styles}
         />
-        <FloatingLabelInput label={t("reservation.visaNumber")} placeholder={t("reservation.enter")} value={passengerDetails.visaNumber} onChangeText={(text) => onInputChange("visaNumber", text)} styles={styles} />
+
+        <View ref={(ref) => (inputRefs.current['visaNumber'] = ref)} collapsable={false}>
+          <FloatingLabelInput 
+            label={t("reservation.visaNumber")} 
+            placeholder={t("reservation.enter")} 
+            value={passengerDetails.visaNumber} 
+            onChangeText={(text) => onInputChange("visaNumber", text)}
+            onFocus={() => handleInputFocus('visaNumber')}
+            styles={styles} 
+          />
+        </View>
 
         <FloatingLabelSelect
           label={t("reservation.visaType")}
@@ -377,12 +439,40 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, t, tripSerial, 
 
       <View style={styles.formSection}>
         <Text style={styles.formSectionTitle}>{t("reservation.passportDetails")}</Text>
-        <FloatingLabelInput label={t("reservation.passportNumber")} placeholder={t("reservation.enter")} value={passengerDetails.passportNumber} onChangeText={(text) => onInputChange("passportNumber", text)} styles={styles} />
-        <FloatingLabelInput label={t("reservation.passportIssuingDate")} placeholder="DD/MM/YYYY" value={passengerDetails.passportIssuingDate} onChangeText={(text) => onInputChange("passportIssuingDate", text)} styles={styles} />
-        <FloatingLabelInput label={t("reservation.passportExpirationDate")} placeholder="DD/MM/YYYY" value={passengerDetails.passportExpirationDate} onChangeText={(text) => onInputChange("passportExpirationDate", text)} styles={styles} />
-      </View>
+        
+        <View ref={(ref) => (inputRefs.current['passportNumber'] = ref)} collapsable={false}>
+          <FloatingLabelInput 
+            label={t("reservation.passportNumber")} 
+            placeholder={t("reservation.enter")} 
+            value={passengerDetails.passportNumber} 
+            onChangeText={(text) => onInputChange("passportNumber", text)}
+            onFocus={() => handleInputFocus('passportNumber')}
+            styles={styles} 
+          />
+        </View>
 
-      {/* Degrees select (depends on tripSerial) */}
+        <View ref={(ref) => (inputRefs.current['passportIssuingDate'] = ref)} collapsable={false}>
+          <FloatingLabelInput 
+            label={t("reservation.passportIssuingDate")} 
+            placeholder="DD/MM/YYYY" 
+            value={passengerDetails.passportIssuingDate} 
+            onChangeText={(text) => onInputChange("passportIssuingDate", text)}
+            onFocus={() => handleInputFocus('passportIssuingDate')}
+            styles={styles} 
+          />
+        </View>
+
+        <View ref={(ref) => (inputRefs.current['passportExpirationDate'] = ref)} collapsable={false}>
+          <FloatingLabelInput 
+            label={t("reservation.passportExpirationDate")} 
+            placeholder="DD/MM/YYYY" 
+            value={passengerDetails.passportExpirationDate} 
+            onChangeText={(text) => onInputChange("passportExpirationDate", text)}
+            onFocus={() => handleInputFocus('passportExpirationDate')}
+            styles={styles} 
+          />
+        </View>
+      </View>
     </View>
   );
 };
@@ -392,38 +482,19 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, t, tripSerial, 
 -------------------------------------*/
 const ReservationScreen = () => {
   const router = useRouter();
-  const params = useLocalSearchParams(); // gets params from previous page
+  const params = useLocalSearchParams();
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "ar";
   const [availablePrices, setAvailablePrices] = useState([]);
   const [loadingPrices, setLoadingPrices] = useState(false);
-  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
 
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      'keyboardDidShow',
-      () => setKeyboardVisible(true)
-    );
-    const keyboardDidHideListener = Keyboard.addListener(
-      'keyboardDidHide',
-      () => setKeyboardVisible(false)
-    );
-
-    return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
-    };
-  }, []);
-
-
-  // Fetch prices when component mounts
   useEffect(() => {
     const fetchPrices = async () => {
       if (!tripSerial) return;
       
       setLoadingPrices(true);
       try {
-        const response = await getAllPrices(tripSerial, /* branchCode */ 1);
+        const response = await getAllPrices(tripSerial, 1);
         setAvailablePrices(response.data || response || []);
         console.log('Fetched prices:', response.data || response);
       } catch (error) {
@@ -434,15 +505,14 @@ const ReservationScreen = () => {
     };
     
     fetchPrices();
-  }, [tripSerial]);
+  }, []);
 
-  // Remove all the useMemo for prices and use this instead:
   const safeParse = (v) => {
     if (!v) return null;
     try {
       return JSON.parse(v);
     } catch {
-      return v; // return plain string (like WASA something)
+      return v;
     }
   };
 
@@ -453,7 +523,6 @@ const ReservationScreen = () => {
   const travelClassFromParams = params?.travelClass ?? incomingTrip?.classEnglishName ?? incomingTrip?.classArabName ?? "";
   const travelClassIdFromParams = params?.travelClassId ?? incomingTrip?.classId ?? null;
 
-  // passengers may be a JSON string
   const parsedPassengersCount = (() => {
     try {
       const p = typeof params?.passengers === "string" ? JSON.parse(params.passengers) : params?.passengers;
@@ -465,7 +534,6 @@ const ReservationScreen = () => {
 
   const totalPassengers = parsedPassengersCount.adult + parsedPassengersCount.child + parsedPassengersCount.infant;
 
-  // component state
   const [allPassengersDetails, setAllPassengersDetails] = useState(() => {
     const arr = [];
     for (let i = 1; i <= Math.max(1, totalPassengers); i++) {
@@ -486,32 +554,29 @@ const ReservationScreen = () => {
   });
   const currentPassengerDetails = allPassengersDetails.find((p) => p.id === selectedPassengerId);
 
-  // helper to update a passenger
-const updatePassengerField = (id, field, value) => {
-  setAllPassengersDetails((prev) => 
-    prev.map((p) => {
-      if (p.id !== id) return p;
-      
-      // If updating degree, also store its price
-      if (field === 'degree' && value) {
-        const priceObj = availablePrices.find(
-          pr => pr.degreeCode === value.oracleDegreeCode
-        );
+  const updatePassengerField = (id, field, value) => {
+    setAllPassengersDetails((prev) => 
+      prev.map((p) => {
+        if (p.id !== id) return p;
         
-        console.log('Setting price:', priceObj?.convertedPrice); // Debug
+        if (field === 'degree' && value) {
+          const priceObj = availablePrices.find(
+            pr => pr.degreeCode === value.oracleDegreeCode
+          );
+          
+          return { 
+            ...p, 
+            degree: value,
+            price: priceObj?.convertedPrice || 0,
+            originalPrice: priceObj?.originalPrice || 0
+          };
+        }
         
-        return { 
-          ...p, 
-          degree: value,
-          price: priceObj?.convertedPrice || 0,
-          originalPrice: priceObj?.originalPrice || 0
-        };
-      }
-      
-      return { ...p, [field]: value };
-    })
-  );
-};
+        return { ...p, [field]: value };
+      })
+    );
+  };
+
   const handleAddPassenger = () => {
     const newId = allPassengersDetails.length > 0 ? Math.max(...allPassengersDetails.map((p) => p.id)) + 1 : 1;
     setAllPassengersDetails((prev) => [...prev, createEmptyPassenger(newId)]);
@@ -527,7 +592,6 @@ const updatePassengerField = (id, field, value) => {
     }
   };
 
-  // continue button - example: navigate to payment or summary (modify as needed)
   const handleContinue = () => {
     const payload = {
       tripSerial,
@@ -539,7 +603,8 @@ const updatePassengerField = (id, field, value) => {
   };
 
   const stylesComputed = getStyles(isRTL);
-  // Price calculations with guards
+  const scrollViewRef = React.useRef(null);
+  
   const currentPassenger = allPassengersDetails?.find(p => p.id === selectedPassengerId);
   const currentPassengerPrice = currentPassenger?.price || 0;
 
@@ -554,57 +619,53 @@ const updatePassengerField = (id, field, value) => {
     return isRTL ? firstPrice.currencyArbPrint : firstPrice.currencyPrint;
   }, [availablePrices, isRTL]);
 
-
   return (
     <SafeAreaView style={stylesComputed.safeArea}>
       <StatusBar barStyle="dark-content" />
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={0}
-      >
-        <View style={stylesComputed.container}>
-          <View style={stylesComputed.header}>
-            <TouchableOpacity onPress={() => router.back()} style={stylesComputed.backButton}>
-              <ArrowLeft size={30} color="#000" style={I18nManager.isRTL && { transform: [{ scaleX: -1 }] }} />
-            </TouchableOpacity>
-            <Text style={stylesComputed.headerTitle}>{t("reservation.headerTitle")}</Text>
-          </View>
+      <View style={stylesComputed.container}>
+        <View style={stylesComputed.header}>
+          <TouchableOpacity onPress={() => router.back()} style={stylesComputed.backButton}>
+            <ArrowLeft size={30} color="#000" style={I18nManager.isRTL && { transform: [{ scaleX: -1 }] }} />
+          </TouchableOpacity>
+          <Text style={stylesComputed.headerTitle}>{t("reservation.headerTitle")}</Text>
+        </View>
 
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <ScrollView 
-              contentContainerStyle={[stylesComputed.scrollContent,
-                     !isKeyboardVisible && { paddingBottom: 200 }]}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-          <View style={stylesComputed.tripSummary}>
-            <Text style={stylesComputed.tripTitle}>{incomingTrip?.tripName ?? t("reservation.trip")}</Text>
-            <Text style={stylesComputed.tripSub}>{`${fromPort} → ${toPort}`}</Text>
-            <Text style={stylesComputed.tripSub}>{`${t("reservation.class")}: ${travelClassFromParams}`}</Text>
-          </View>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={0}
+        >
+          <ScrollView 
+            ref={scrollViewRef}
+            contentContainerStyle={stylesComputed.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={stylesComputed.tripSummary}>
+              <Text style={stylesComputed.tripTitle}>{incomingTrip?.tripName ?? t("reservation.trip")}</Text>
+              <Text style={stylesComputed.tripSub}>{`${fromPort} → ${toPort}`}</Text>
+              <Text style={stylesComputed.tripSub}>{`${t("reservation.class")}: ${travelClassFromParams}`}</Text>
+            </View>
 
-          <PassengerInformationSection
-            passengers={passengerTabs}
-            selectedPassengerId={selectedPassengerId}
-            onSelectPassenger={setSelectedPassengerId}
-            onAddPassenger={handleAddPassenger}
-            onRemovePassenger={handleRemovePassenger}
-            styles={stylesComputed}
-          />
+            <PassengerInformationSection
+              passengers={passengerTabs}
+              selectedPassengerId={selectedPassengerId}
+              onSelectPassenger={setSelectedPassengerId}
+              onAddPassenger={handleAddPassenger}
+              onRemovePassenger={handleRemovePassenger}
+              styles={stylesComputed}
+            />
 
-          <TravelDetailsSection
-            passengerDetails={currentPassengerDetails}
-            onInputChange={(field, value) => updatePassengerField(selectedPassengerId, field, value)}
-            t={t}
-            tripSerial={tripSerial}
-            styles={stylesComputed}
-          />
+            <TravelDetailsSection
+              passengerDetails={currentPassengerDetails}
+              onInputChange={(field, value) => updatePassengerField(selectedPassengerId, field, value)}
+              t={t}
+              tripSerial={tripSerial}
+              styles={stylesComputed}
+              scrollViewRef={scrollViewRef}
+            />
           </ScrollView>
-          </TouchableWithoutFeedback>
 
-
-        {!isKeyboardVisible && (
           <View style={stylesComputed.footer}>
             <View style={stylesComputed.priceSection}>
               <View style={stylesComputed.priceRow}>
@@ -626,25 +687,25 @@ const updatePassengerField = (id, field, value) => {
                   {totalPrice.toFixed(2)} {currencyDisplay}
                 </Text>
               </View>
+            </View>
+            
+            <TouchableOpacity 
+              style={stylesComputed.continueButton} 
+              onPress={handleContinue}
+            >
+              <Text style={stylesComputed.continueButtonText}>
+                {t("reservation.continue")}
+              </Text>
+            </TouchableOpacity>
           </View>
-          
-          <TouchableOpacity 
-            style={stylesComputed.continueButton} 
-            onPress={handleContinue}
-          >
-            <Text style={stylesComputed.continueButtonText}>
-              {t("reservation.continue")}
-            </Text>
-          </TouchableOpacity>
-        </View>)}
+        </KeyboardAvoidingView>
       </View>
-      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 /* -------------------------------------
-   Styles (copied & extended)
+   Styles
 -------------------------------------*/
 const getStyles = (isRTL) =>
   StyleSheet.create({
@@ -661,7 +722,11 @@ const getStyles = (isRTL) =>
     },
     backButton: { position: "absolute", left: 24, bottom: 12 },
     headerTitle: { fontFamily: "Inter-Medium", fontSize: 16, color: "black" },
-    scrollContent: { paddingBottom: 40, gap: 12, paddingHorizontal: 0 },
+    scrollContent: { 
+      paddingBottom: 220,
+      gap: 12, 
+      paddingHorizontal: 0 
+    },
     tripSummary: { backgroundColor: "#ECF3FF", padding: 20, borderBottomLeftRadius: 12, borderBottomRightRadius: 12 },
     tripTitle: { fontSize: 18, fontFamily: "Inter-Bold", color: "#092863" },
     tripSub: { fontSize: 14, color: "#5c7095", marginTop: 6 },
@@ -709,6 +774,7 @@ const getStyles = (isRTL) =>
       shadowOpacity: 0.15,
       shadowRadius: 20,
       elevation: 24,
+      gap: 16,
     },
     continueButton: { backgroundColor: "#06193b", borderRadius: 16, height: 60, alignItems: "center", justifyContent: "center" },
     continueButtonText: { fontFamily: "Inter-Bold", fontSize: 16, color: "white" },
@@ -723,21 +789,6 @@ const getStyles = (isRTL) =>
     modalItem: { paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#f0f0f0" },
     modalItemText: { fontSize: 15, color: "#222" },
     modalNoResults: { padding: 20, textAlign: "center", color: "#999" },
-    footer: {
-      position: "absolute",
-      bottom: 0,
-      width: "100%",
-      paddingVertical: 16,
-      paddingBottom: 24,
-      paddingHorizontal: 24,
-      backgroundColor: "white",
-      shadowColor: "#000000",
-      shadowOffset: { width: 0, height: -12 },
-      shadowOpacity: 0.15,
-      shadowRadius: 20,
-      elevation: 24,
-      gap: 16,
-    },
     priceSection: {
       gap: 8,
     },
