@@ -233,6 +233,7 @@ const BookingScreen = () => {
 
   async function registerForPushNotificationsAsync() {
     let token;
+    console.log('Registering for push notifications...', Constants.isDevice);
     if (Constants.isDevice) {
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;

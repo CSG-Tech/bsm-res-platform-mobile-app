@@ -84,6 +84,7 @@ const PaymentScreen = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('creditcard'); // default
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false); 
 
   const countryButtonRef = useRef(null);
 
@@ -144,22 +145,24 @@ const PaymentScreen = () => {
   // Fetch user info on mount
   useEffect(() => {
     const fetchUserData = async () => {
+      if (initialDataLoaded) return; // ✅ Prevent re-fetch
+      
       try {
         const data = await getUserInfo();
         setEmail(data.email || '');
         setPhone(data.phone || '');
         setOriginalEmail(data.email || '');
         setOriginalPhone(data.phone || '');
+        setInitialDataLoaded(true); // ✅ Mark as loaded
       } catch (err) {
         console.error('Failed to fetch user info:', err);
-        // Continue anyway for guest users
       } finally {
         setLoading(false);
       }
     };
     
     fetchUserData();
-  }, []);
+  }, [initialDataLoaded]); // ✅ Add dependency
 
   useFocusEffect(
     useCallback(() => {
@@ -187,6 +190,12 @@ const PaymentScreen = () => {
     }
 
     setSubmitting(true);
+      // 1️⃣ Update user info if changed
+      const hasChanges = email !== originalEmail || phone !== originalPhone;
+      if (hasChanges) {
+        await updateUser({ email, phone });
+      }
+
     const existingReservationId = params.reservationId;
     if (existingReservationId) {
       // Use existing reservation
@@ -202,12 +211,6 @@ const PaymentScreen = () => {
     }
 
     try {
-      // 1️⃣ Update user info if changed
-      const hasChanges = email !== originalEmail || phone !== originalPhone;
-      if (hasChanges) {
-        await updateUser({ email, phone });
-      }
-
       // 2️⃣ Create reservation
       const reservationPayload = {
         tripSerial: Number(tripSerial),
