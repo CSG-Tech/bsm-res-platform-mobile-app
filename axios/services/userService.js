@@ -23,3 +23,13 @@ export const updateUser = async (updates) => {
   const res = await api.patch(ENDPOINTS.USER.UPDATE, updates);
   return res.data;
 };
+
+// 🔸 Save Device Token for Push Notifications
+export const saveDeviceToken = async (deviceId, deviceToken) => {
+  console.log('➡️ saveDeviceToken URL:', ENDPOINTS.USER.DEVICE_TOKEN);
+  const res = await api.patch(ENDPOINTS.USER.DEVICE_TOKEN, {
+  deviceId,
+  deviceToken,
+  });
+  return res.data;
+}

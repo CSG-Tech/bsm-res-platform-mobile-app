@@ -32,6 +32,7 @@ export const ENDPOINTS = {
   USER: {
     GET_INFO: '/users/me',
     UPDATE: '/users/update',
+    DEVICE_TOKEN: '/users/save-device-token',
   },
   PAYMENTS: {
     INITIATE: '/payments/initiate',                  
