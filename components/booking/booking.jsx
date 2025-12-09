@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -15,12 +17,12 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Platform
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getAllClasses, getFromPorts, getToPorts, getTripsByDateAndLine, } from '../../axios/services/searchService';
 import { saveDeviceToken } from '../../axios/services/userService';
-import * as Notifications from 'expo-notifications';
 import { getOrCreateDeviceId } from '../../axios/storage/deviceStorage';
 import { PassengerSelectionModal } from './PassengerSelectionModal';
 
