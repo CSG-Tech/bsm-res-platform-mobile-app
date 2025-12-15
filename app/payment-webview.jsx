@@ -1,3 +1,4 @@
+// payment-webview.jsx
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
@@ -22,17 +23,9 @@ const PaymentWebViewScreen = () => {
   const webViewRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
-  const [pageReady, setPageReady] = useState(false);
 
-  const paymentData = React.useMemo(() => {
-    try {
-      return JSON.parse(params.paymentData);
-    } catch {
-      return null;
-    }
-  }, [params.paymentData]);
-
-  const reservationId = params.reservationId;
+  // Get token from params (no more paymentData)
+  const token = params.token;
 
   // Define success statuses
   const successStatuses = ['paid', 'authorized', 'success'];
@@ -45,13 +38,7 @@ const PaymentWebViewScreen = () => {
 
       switch (message.type) {
         case 'PAGE_READY':
-          setPageReady(true);
           setLoading(false);
-          if (webViewRef.current && paymentData) {
-            setTimeout(() => {
-              webViewRef.current?.postMessage(JSON.stringify(paymentData));
-            }, 100);
-          }
           break;
 
         case 'PAYMENT_SUCCESS':
@@ -69,7 +56,7 @@ const PaymentWebViewScreen = () => {
               pathname: '/confirmation',
               params: {
                 status,
-                reservationId,
+                reservationId: message.reservationId || '',
                 paymentId: paymentObj?.id || message.paymentId || ''
               }
             });
@@ -78,7 +65,7 @@ const PaymentWebViewScreen = () => {
               pathname: '/failed-booking',
               params: {
                 status,
-                reservationId,
+                reservationId: message.reservationId || '',
                 paymentId: paymentObj?.id || message.paymentId || ''
               }
             });
@@ -104,6 +91,7 @@ const PaymentWebViewScreen = () => {
       const urlParams = new URLSearchParams(urlParts[1] || '');
       const status = urlParams.get('status');
       const paymentId = urlParams.get('paymentId');
+      const reservationId = urlParams.get('reservationId');
 
       console.log('Deep link intercepted:', { path, status, paymentId, reservationId });
 
@@ -148,11 +136,11 @@ const PaymentWebViewScreen = () => {
     return true;
   };
 
-  if (!paymentData) {
+  if (!token) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{t('payment.invalidPaymentData')}</Text>
+          <Text style={styles.errorText}>{t('payment.invalidPaymentToken')}</Text>
           <TouchableOpacity 
             style={styles.backButton} 
             onPress={() => router.back()}
@@ -185,10 +173,10 @@ const PaymentWebViewScreen = () => {
           </View>
         )}
 
-        {/* WebView */}
+        {/* WebView - Pass token in URL */}
         <WebView
           ref={webViewRef}
-          source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}/payment.html?lang=${i18n.language}` }}
+          source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}/payment.html?token=${token}&lang=${i18n.language}` }}
           onMessage={handleWebViewMessage}
           onLoadEnd={() => setLoading(false)}
           onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}

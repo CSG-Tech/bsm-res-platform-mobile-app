@@ -41,6 +41,8 @@ export const ENDPOINTS = {
     CAPTURE: (reservationId) => `/payments/capture/${reservationId}`,
     GET_RESERVATION_STATUS: (reservationId) => `/payments/reservation/${reservationId}/status`,
     CANCEL_PROCESSING: (reservationId) => `/payments/reservation/${reservationId}/cancel-processing`,
+    CREATE_TOKEN: '/payments/token/create',
+    GET_PAYMENT_DATA: (token) => `/payments/token/${token}`,
   },
   RESERVATIONS: {
     CREATE: '/reservations',
