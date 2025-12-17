@@ -17,6 +17,17 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import TicketWidget from '../../components/booking/TicketsWidget';
 import { getTripsByDateAndLine } from '../../axios/services/searchService';
+import HomeIcon from '../../assets/images/icons/Home.svg';
+import TicketsIcon from '../../assets/images/icons/Tickets.svg';
+import ManageIcon from '../../assets/images/icons/Manage.svg';
+import ShipIcon from '../../assets/images/icons/ship-icon.svg';
+import BackArrow from '../../assets/images/icons/back-arrow.svg';
+import CalendarIcon from '../../assets/images/icons/calendar2.svg';
+import FromIcon from '../../assets/images/icons/from-icon.svg';
+import ToIcon from '../../assets/images/icons/to-icon.svg';
+import FerryRoute from '../../assets/images/icons/ferry-route.svg';
+import { Modal } from 'react-native';
+import { Calendar } from 'react-native-calendars';
 
 const generateDateOptions = (selectedDateStr, languageCode, calendarType) => {
   const options = [];
@@ -66,11 +77,17 @@ const SearchResultsScreen = () => {
   const searchParams = useLocalSearchParams();
   const isRTL = i18n.language === 'ar';
   const flatListRef = useRef(null); 
-  const navigationItems = [
-    { icon: require('../../assets/images/icons/Home.png'), label: t('navigation.home'), isActive: true },
-    { icon: require('../../assets/images/icons/Tickets.png'), label: t('navigation.tickets'), isActive: false },
-    { icon: require('../../assets/images/icons/Manage.png'), label: t('navigation.manage'), isActive: false },
-  ];
+  const [isCalendarVisible, setIsCalendarVisible] = useState(false);
+  // const navigationItems = [
+  //   { icon: require('../../assets/images/icons/Home.png'), label: t('navigation.home'), isActive: true },
+  //   { icon: require('../../assets/images/icons/Tickets.png'), label: t('navigation.tickets'), isActive: false },
+  //   { icon: require('../../assets/images/icons/Manage.png'), label: t('navigation.manage'), isActive: false },
+  // ];
+   const navigationItems = [
+      { icon: () => <HomeIcon style={styles.navIcon} />, label: t('navigation.home'), isActive: true },
+      { icon: () => <TicketsIcon style={styles.navIcon} />, label: t('navigation.tickets'), isActive: false },
+      { icon: () => <ManageIcon style={styles.navIcon} />, label: t('navigation.manage'), isActive: false },
+    ];
 
   const fromPort = searchParams?.fromPort || "Unknown Port";
   const toPort = searchParams?.toPort || "Unknown Port";
@@ -223,10 +240,11 @@ const SearchResultsScreen = () => {
 
       <View style={styles.screenHeader}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Image
+          <BackArrow style={[styles.backArrowIcon, isRTL && { transform: [{ scaleX: -1 }] }]}/>
+          {/* <Image
             source={require('../../assets/images/icons/back-arrow.png')}
             style={[styles.backArrowIcon, isRTL && { transform: [{ scaleX: -1 }] }]}
-          />
+          /> */}
         </TouchableOpacity>
         <Text style={styles.screenTitle}>{t('searchResults.title')}</Text>
       </View>
@@ -236,16 +254,16 @@ const SearchResultsScreen = () => {
           <View style={styles.headerContainer}>
             <View style={styles.portInfoContainer}>
               <Text style={styles.portName} numberOfLines={2}>{fromPort}</Text>
-              <Image
+              <FerryRoute style={[styles.ferryRouteIcon, isRTL && { transform: [{ scaleX: -1 }] }]}/>
+              {/* <Image
                 source={require('../../assets/images/icons/ferry-route.png')}
                 style={[styles.ferryRouteIcon, isRTL && { transform: [{ scaleX: -1 }] }]}
-              />
-              <Text style={styles.portName} numberOfLines={2}>{toPort}</Text>
+              /> */}
+              <Text style={[styles.portName, {textAlign:'center'}]} numberOfLines={2}>{toPort}</Text>
             </View>
             <Text style={styles.passengerInfo}>{`${passengerText} • ${travelClass}`}</Text>
           </View>
 
-          {/* Calendar Type Toggle */}
           <View style={styles.calendarToggle}>
             <TouchableOpacity
               style={[
@@ -279,11 +297,12 @@ const SearchResultsScreen = () => {
           </View>
 
           <View style={styles.dateSelectionContainer}>
-            <TouchableOpacity style={styles.calendarIconContainer}>
-              <Image
+            <TouchableOpacity style={styles.calendarIconContainer} onPress={() => setIsCalendarVisible(true)}>
+              <CalendarIcon style={styles.calendarIcon}/>
+              {/* <Image
                 source={require('../../assets/images/icons/calendar2.png')}
                 style={styles.calendarIcon}
-              />
+              /> */}
             </TouchableOpacity>
             <FlatList
               ref={flatListRef}
@@ -323,21 +342,27 @@ const SearchResultsScreen = () => {
                   <TicketWidget>
                     <View style={styles.vesselCardHeader}>
                       <Text style={styles.vesselName}>{vessel.vesselName || 'N/A'}</Text>
+                      {/* price test */}
                       <View>
-                        <Text style={styles.estPriceLabel}>{t('searchResults.estPrice')}</Text>
-                        <Text>
-                          <Text style={styles.price}>{vessel.estimatedCost || '0.00'}</Text>
-                          <Text style={styles.paxText}>{vessel.currencyPrint ? ` ${vessel.currencyPrint}` : ''}</Text>
-                        </Text>
-                      </View>
+                        <View>
+                          <Text style={styles.estPriceLabel}>{t('searchResults.estPrice')}</Text>
+                          <Text>
+                            <Text style={styles.price}>{vessel.estimatedCost || '0.00'}</Text>
+                            <Text style={styles.paxText}>{vessel.currencyPrint ? ` ${vessel.currencyPrint}` : ''}</Text>
+                          </Text>
+                        </View>
+                        <TouchableOpacity style={styles.closeButton}>
+                          <Text style={styles.closeButtonText}>Close</Text>
+                        </TouchableOpacity>
+                      </View>                  
                     </View>
-
                     <View style={styles.separator} />
 
                     <View style={styles.vesselDetailsContainer}>
                       <View style={styles.portDetailColumn}>
                         <View style={styles.badge}>
-                          <Image source={require('../../assets/images/icons/from-icon.png')} style={styles.badgeIcon}/>
+                          <FromIcon style={styles.badgeIcon}/>
+                          {/* <Image source={require('../../assets/images/icons/from-icon.png')} style={styles.badgeIcon}/> */}
                           <Text style={styles.badgeText}>{t('searchResults.departure')}</Text>
                         </View>
                         <Text style={styles.portNameDetail}>{fromPort || 'N/A'}</Text>
@@ -352,7 +377,8 @@ const SearchResultsScreen = () => {
 
                       <View style={styles.portDetailColumn}>
                         <View style={styles.badgeRight}>
-                          <Image source={require('../../assets/images/icons/to-icon.png')} style={styles.badgeIcon}/>
+                          <ToIcon style={styles.badgeIcon}/>
+                          {/* <Image source={require('../../assets/images/icons/to-icon.png')} style={styles.badgeIcon}/> */}
                           <Text style={styles.badgeText}>{t('searchResults.arrival')}</Text>
                         </View>
                         <Text style={styles.portNameDetailRight}>{toPort || 'N/A'}</Text>
@@ -372,20 +398,48 @@ const SearchResultsScreen = () => {
 
       <View style={styles.navigation}>
         {navigationItems.map((item) => (
-          <TouchableOpacity
-            key={item.label}
-            style={[styles.navItem, item.isActive && styles.navItemActive]}
-          >
-            <Image
-              source={item.icon}
-              style={[styles.navIcon, item.isActive && styles.navIconActive]}
-            />
-            <Text style={[styles.navLabel, item.isActive && styles.navLabelActive]}>
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+          <TouchableOpacity key={item.label} style={[styles.navItem, item.isActive && styles.navItemActive]}>
+                     {typeof item.icon === 'function' ? (
+                       item.icon()
+                     ) : (
+                       <Image source={item.icon} style={[styles.navIcon, item.isActive && styles.navIconActive]} />)}
+                     <Text style={[styles.navLabel, item.isActive && styles.navLabelActive]}>{item.label}</Text>
+                   </TouchableOpacity>
+                 ))}
       </View>
+      <Modal
+          visible={isCalendarVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setIsCalendarVisible(false)}>
+          <View style={styles.calendarOverlay}>
+            <View style={styles.calendarContainer}>
+              <Calendar
+                monthFormat={'MMMM yyyy'}
+                onDayPress={(day) => {
+                  setSelectedDate(new Date(day.dateString).toISOString());
+                  setIsCalendarVisible(false);
+                }}
+                markedDates={{
+                  [selectedDate.split('T')[0]]: {
+                    selected: true,
+                    selectedColor: '#6291E8',
+                  },
+                }}
+                theme={{
+                  todayTextColor: '#6291E8',
+                  arrowColor: '#6291E8',
+                  textDayFontFamily: 'Inter-Regular',
+                  textMonthFontFamily: 'Inter-Bold',
+                  textDayHeaderFontFamily: 'Inter-Medium',
+                }}
+              />
+              <TouchableOpacity style={styles.closeButton} onPress={() => setIsCalendarVisible(false)}>
+                          <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -398,11 +452,12 @@ const getStyles = (isRTL) => StyleSheet.create({
   screenHeader: {
     flexDirection: isRTL ? 'row-reverse' : 'row',
     alignItems: 'center',
+    textAlign: 'right',
     paddingHorizontal: 24,
     paddingVertical: 20,
     backgroundColor: 'white',
     borderBottomColor: '#f0f0f0',
-    gap: 100,
+    gap: 50,
   },
   backArrowIcon: {
     width: 34,
@@ -412,6 +467,7 @@ const getStyles = (isRTL) => StyleSheet.create({
     fontFamily: 'Inter-Bold',
     fontSize: 18,
     color: 'black',
+    textAlign: 'center',
     textAlign: isRTL ? 'right' : 'left',
   },
   scrollViewContent: {
@@ -422,8 +478,8 @@ const getStyles = (isRTL) => StyleSheet.create({
   },
   headerContainer: {
     paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 24,
+    paddingTop: 12,
+    paddingBottom: 16,
     gap: 24,
   },
   portInfoContainer: {
@@ -437,7 +493,7 @@ const getStyles = (isRTL) => StyleSheet.create({
     color: 'black',
     fontSize: 16,
     flex: 1,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   ferryRouteIcon: {
     width: 80,
@@ -449,8 +505,8 @@ const getStyles = (isRTL) => StyleSheet.create({
     fontFamily: 'Inter-Medium',
     fontWeight: '600',
     color: '#000000ff',
-    fontSize: 16,
-    paddingVertical: 2,
+    fontSize: 14,
+    paddingVertical: 0,
     textAlign: isRTL ? 'right' : 'left',
   },
   calendarToggle: {
@@ -543,10 +599,11 @@ const getStyles = (isRTL) => StyleSheet.create({
   availableVesselsHeader: {
     fontFamily: 'Inter-Bold',
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 14,
     color: '#092863aa',
     alignSelf: isRTL ? 'flex-end' : 'flex-start',
-    marginBottom: 20,
+    marginBottom: 10,
+    backgroundColor:'red',
   },
   vesselListContainer: {
     paddingTop: 32,
@@ -570,6 +627,7 @@ const getStyles = (isRTL) => StyleSheet.create({
     fontSize: 15,
     color: '#7E92B9',
     textAlign: isRTL ? 'left' : 'right',
+    backgroundColor:'red'
   },
   price: {
     fontFamily: 'Inter-Bold',
@@ -714,10 +772,25 @@ const getStyles = (isRTL) => StyleSheet.create({
     color: '#878d9a',
   },
   navLabelActive: {
-    fontFamily: 'Inter-Bold',
-    fontWeight: 'bold',
-    color: '#092863',
+      fontFamily: 'Inter-Bold',
+      fontWeight: 'bold',
+      color: '#092863',
   },
+  calendarOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calendarContainer: {
+    width: '90%',
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 16,
+  },
+  closeButton: { marginTop: 10, paddingVertical: 14, backgroundColor: '#0A2351', borderRadius: 12, alignItems: 'center' },
+  closeButtonText: { color: 'white', fontWeight: 'bold' },
+
 });
 
 export default SearchResultsScreen;
