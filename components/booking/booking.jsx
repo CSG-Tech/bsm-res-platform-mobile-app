@@ -109,13 +109,13 @@ const getStyles = (isRTL) => {
     genericModalTitle: { fontSize: 18, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
     modalItem: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#eee' },
     modalItemText: { fontSize: 16, textAlign: isRTL ? 'right' : 'left' },
-    closeButton: { marginTop: 20, paddingVertical: 14, backgroundColor: '#0A2351', borderRadius: 12, alignItems: 'center' },
+    closeButton: { marginTop: 10, paddingVertical: 14, backgroundColor: '#0A2351', borderRadius: 12, alignItems: 'center' },
     closeButtonText: { color: 'white', fontWeight: 'bold' },
     calendar: { borderRadius: 16 },
     calendarHeader: { paddingHorizontal: 16 },
-    arrowWrapper: { width: 32,height: 32, justifyContent: 'center', alignItems: 'center'},
+    arrowWrapper: { width: 32,height: 32, justifyContent: 'center', alignItems: 'center', marginTop: -4},
     arrowText: {fontSize: 18,color: '#6291e8',fontWeight: 'bold'},
-    calendarContainer: { marginBottom: 16 }
+    calendarContainer: { marginBottom: 16}
   });
 };
 
@@ -185,21 +185,26 @@ const CalendarModal = ({ visible, onClose, onSelect, selectedDate, title, isRTL 
           <Text style={styles.genericModalTitle}>{title}</Text>
           <View style={{maxHeight: 340}}>
             <Calendar
+                monthFormat={'MMMM yyyy'}
                 onDayPress={onSelect}
                 markedDates={markedDate}
                 theme={{...calendarTheme,arrowColor: '#6291e8',
                   'stylesheet.calendar.header': {
                     header: {
-                      paddingHorizontal: 16,
+                      paddingHorizontal: 22,
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginBottom: 0,
                     },
                   },
                 }}
                 renderArrow={(direction) => (
                   <View style={styles.arrowWrapper}>
                     <Text style={styles.arrowText}>
-                      {direction === 'left'
-                        ? isRTL ? '>' : '<'
-                        : isRTL ? '<' : '>'}
+                      {isRTL
+                          ? direction === 'right' ? '>' : '<'   
+                          : direction === 'left' ? '<' : '>'}  
                     </Text>
                   </View>
                 )}
@@ -240,7 +245,7 @@ const BookingScreen = () => {
   const [tripType, setTripType] = useState('One-Way');
   const [fromPort, setFromPort] = useState(null);
   const [toPort, setToPort] = useState(null);
-  const [travelDate, setTravelDate] = useState(null);
+  const [travelDate, setTravelDate] = useState();
   const [passengers, setPassengers] = useState({ adult: 1, child: 0, infant: 0 });
   const [selectedClass, setSelectedClass] = useState(null);
   const [isPortModalVisible, setPortModalVisible] = useState(false);
