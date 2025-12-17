@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { PanResponder } from 'react-native';
+import AdultIcon from '../../assets/images/passengers/Adult.svg';
+import InfantIcon from '../../assets/images/passengers/Infant.svg';
+import ChildIcon from '../../assets/images/passengers/Child.svg';
 
 const convertToArabicNumerals = (number) => {
   if (number === undefined || number === null) return '';
@@ -13,25 +17,19 @@ const passengerTypes = [
     id: 'adult',
     labelKey: 'passenger.adult',
     ageRangeKey: 'passenger.adultAge',
-    imageSource: require('../../assets/images/passengers/Adult.png'),
-    width: 65,
-    height: 65,
+    icon: ()=> <AdultIcon width={65} height={65}/>,
   },
   {
     id: 'child',
     labelKey: 'passenger.child',
     ageRangeKey: 'passenger.childAge',
-    imageSource: require('../../assets/images/passengers/Child.png'),
-    width: 35,
-    height: 35,
+    icon: ()=> <ChildIcon width={35} height={35}/>
   },
   {
     id: 'infant',
     labelKey: 'passenger.infant',
     ageRangeKey: 'passenger.infantAge',
-    imageSource: require('../../assets/images/passengers/Infant.png'),
-    width: 30,
-    height: 30,
+    icon: ()=> <InfantIcon width={30} height={30}/>
   },
 ];
 
@@ -93,10 +91,26 @@ const NumberScroller = ({ value, onValueChange, min = 0, max = 5 }) => {
 export const PassengerSelectionModal = ({ visible, onClose, onConfirm, initialCounts }) => {
     const { t } = useTranslation();
     const [tempCounts, setTempCounts] = useState(initialCounts);
+    const [dragDistance, setDragDistance] = useState(0);
+// drag down to close (number of passengers) 
+const panResponder = useRef(
+  PanResponder.create({
+    onStartShouldSetPanResponder: () => true, 
+    onMoveShouldSetPanResponder: (_, gestureState) => false,
+    onPanResponderMove: (_, gestureState) => {
+      if (gestureState.dy > 0) setDragDistance(gestureState.dy);
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      if (gestureState.dy > 100) onClose();
+      else setDragDistance(0);
+    },
+  })
+).current;
 
     useEffect(() => {
         if (visible) {
             setTempCounts(initialCounts);
+            setDragDistance(0); // reset drag
         }
     }, [visible, initialCounts]);
 
@@ -106,6 +120,7 @@ export const PassengerSelectionModal = ({ visible, onClose, onConfirm, initialCo
             [typeId]: newValue,
         }));
     };
+  
 
   return (
     <Modal
@@ -115,20 +130,24 @@ export const PassengerSelectionModal = ({ visible, onClose, onConfirm, initialCo
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
-          <View style={styles.handleBar} />
+        <View style={[styles.modalContainer,  { transform: [{ translateY: dragDistance }] }]}>
+          <View style={styles.handleBar} {...panResponder.panHandlers} />
           <Text style={styles.modalTitle}>{t('passenger.modalTitle')}</Text>
           
           <View style={styles.countersWrapper}>
             {passengerTypes.map((type, index) => (
                 <React.Fragment key={type.id}>
                     <View style={styles.counterBlock}>
-                        <View style={styles.imageContainer}> 
-                        <Image 
-                          source={type.imageSource}
-                          style={{ width: type.width, height: type.height }} 
-                          resizeMode="contain"
-                        />
+                      <View style={styles.imageContainer}>
+                        {typeof type.icon === 'function' ? (
+                          type.icon()
+                        ) : (
+                          <Image
+                            source={type.icon}
+                            style={{ width: type.width, height: type.height }}
+                            resizeMode="contain"
+                          />
+                        )}
                       </View>
                         <Text style={styles.counterLabel}>{t(type.labelKey)}</Text>
                         <Text style={styles.counterAge}>{t(type.ageRangeKey)}</Text>
@@ -136,7 +155,7 @@ export const PassengerSelectionModal = ({ visible, onClose, onConfirm, initialCo
                             value={tempCounts[type.id]}
                             onValueChange={(newValue) => handleValueChange(type.id, newValue)}
                             min={type.id === 'adult' ? 1 : 0}
-                            max={5}
+                            max={10}
                         />
                     </View>
                     
@@ -176,9 +195,9 @@ const styles = StyleSheet.create({
     },
     handleBar: {
         width: 56,
-        height: 5,
+        height: 10,
         backgroundColor: '#e5e7eb',
-        borderRadius: 2.5,
+        borderRadius: 15,
         alignSelf: 'center',
         marginBottom: 24,
     },
