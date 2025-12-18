@@ -30,6 +30,7 @@ import ToIcon from '../../assets/images/icons/to-icon.svg';
 import CalendarIcon from '../../assets/images/icons/calendar-icon.svg';
 import PassengersIcon from '../../assets/images/icons/passengers-icon.svg';
 import ClassIcon from '../../assets/images/icons/class-icon.svg';
+import { t } from 'i18next';
 
 
 
@@ -139,7 +140,6 @@ const ListSelectionModal = ({
       <View style={styles.modalOverlay}>
         <View style={styles.genericModalContainer}>
           <Text style={styles.genericModalTitle}>{title}</Text>
-
           {isLoading ? (
             <ActivityIndicator size="large" color="#6291e8" />
           ) : (
@@ -212,7 +212,7 @@ const CalendarModal = ({ visible, onClose, onSelect, selectedDate, title, isRTL 
               />
           </View>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeButtonText}>Close</Text>
+            <Text style={styles.closeButtonText}>{t('booking.close')}</Text>
           </TouchableOpacity>
         </View>
       </View>
