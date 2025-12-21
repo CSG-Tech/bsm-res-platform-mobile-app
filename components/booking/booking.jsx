@@ -203,9 +203,9 @@ const BookingScreen = () => {
     { id: '3', name: t('booking.classFirst') }
   ];
   const navigationItems = [
-    { icon: require('../../assets/images/icons/Home.png'), label: t('navigation.home'), isActive: true },
-    { icon: require('../../assets/images/icons/Tickets.png'), label: t('navigation.tickets'), isActive: false },
-    { icon: require('../../assets/images/icons/Manage.png'), label: t('navigation.manage'), isActive: false },
+    { icon: require('../../assets/images/icons/Home.png'), label: t('navigation.home'), isActive: true, route:'/index' },
+    { icon: require('../../assets/images/icons/Tickets.png'), label: t('navigation.tickets'), isActive: false, route:'/find-ticket' },
+    { icon: require('../../assets/images/icons/Manage.png'), label: t('navigation.manage'), isActive: false, route:'/manage' },
   ];
    
   const [tripType, setTripType] = useState('One-Way');
@@ -405,6 +405,13 @@ const BookingScreen = () => {
     setPassengerModalVisible(false);
   };
 
+  const handleNavigation = (route) => {
+    if (route) {
+      router.push(route);
+    }
+  };
+
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
@@ -494,7 +501,10 @@ const BookingScreen = () => {
 
       <View style={styles.navigation}>
         {navigationItems.map((item) => (
-          <TouchableOpacity key={item.label} style={[styles.navItem, item.isActive && styles.navItemActive]}>
+          <TouchableOpacity key={item.label} 
+          style={[styles.navItem, item.isActive && styles.navItemActive]}
+          onPress={() => handleNavigation(item.route)}
+          >
             <Image source={item.icon} style={[styles.navIcon, item.isActive && styles.navIconActive]} />
             <Text style={[styles.navLabel, item.isActive && styles.navLabelActive]}>{item.label}</Text>
           </TouchableOpacity>

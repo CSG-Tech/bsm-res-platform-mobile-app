@@ -81,3 +81,12 @@ export const getReservationDetails = async (reservationId) => {
   console.log('Reservation Details Response:', res.data);
   return res.data;
 };
+
+// 🔸 Get Reservation Tickets
+export const getReservation = async (searchObject) => {
+  console.log('➡️ getReservation URL: ', ENDPOINTS.RESERVATIONS.FIND_RESERVATION);
+  console.log('➡️ searchObject: ', searchObject)
+  await api.post(ENDPOINTS.RESERVATIONS.FIND_RESERVATION, searchObject);
+  console.log('Reservation Details Response:', res.data);
+  return res.data;
+};

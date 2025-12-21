@@ -49,5 +49,6 @@ export const ENDPOINTS = {
     UPDATE_PASSENGERS: (reservationId) => `/reservations/${reservationId}/passengers`,
     EXPIRE: (reservationId) => `/reservations/${reservationId}/expire`,
     GET_DETAILS: (reservationId) => `/reservations/${reservationId}`,
+    FIND_RESERVATION: '/reservations/findReservation',
   },
 };
