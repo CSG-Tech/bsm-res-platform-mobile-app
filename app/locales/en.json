@@ -149,6 +149,16 @@
     "resumeOrCancelMessage": "Would you like to continue or cancel the payment?",
     "resumeOrCancel": "Payment Action"
   },
+  "findTickets": {
+    "title": "Find Your Tickets",
+    "lastName": "Last Name",
+    "passportNumber": "Passport Number",
+    "reservationNumber": "Reservation Number",
+    "enterPlaceholder": "Enter",
+    "search": "Search",
+    "validationError": "Validation Error",
+    "validationErrorMessage": "Please fill in at least one field to search"
+  },
   "eticket": {
     "headerTitle": "E-Ticket",
     "passenger": "Passenger {{num}}",
@@ -171,7 +181,13 @@
     "viewTransaction": "View Transaction",
     "changeDegree": "Change Degree",
     "reschedule": "Reschedule",
-    "cancelBooking": "Cancel Booking"
+    "cancelBooking": "Cancel Booking",
+    "loading": "Loading your tickets...",
+    "error": "Error Loading Tickets",
+    "goBack": "Go Back",
+    "noResults": "No Tickets Found",
+    "noResultsMessage": "We couldn't find any tickets matching your search. Please check your information and try again.",
+    "searchAgain": "Search Again"
   },
     "paymentResult": {
     "successTitle": "Payment Successful!",
@@ -190,7 +206,13 @@
     "paymentId": "Payment ID",
     "continue": "Continue",
     "tryAgain": "Try Again",
-    "checkLater": "Check Later"
+    "checkLater": "Check Later",
+    "loading": "جاري تحميل تذاكرك...",
+    "error": "خطأ في تحميل التذاكر",
+    "goBack": "رجوع",
+    "noResults": "لم يتم العثور على تذاكر",
+    "noResultsMessage": "لم نتمكن من العثور على أي تذاكر تطابق بحثك. يرجى التحقق من معلوماتك والمحاولة مرة أخرى.",
+    "searchAgain": "بحث مرة أخرى"
   },
   "confirmation": {
     "headerTitle": "Booking Confirmation",
