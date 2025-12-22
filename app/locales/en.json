@@ -187,7 +187,8 @@
     "goBack": "Go Back",
     "noResults": "No Tickets Found",
     "noResultsMessage": "We couldn't find any tickets matching your search. Please check your information and try again.",
-    "searchAgain": "Search Again"
+    "searchAgain": "Search Again",
+    "ticketNumber": "Ticket Number"
   },
     "paymentResult": {
     "successTitle": "Payment Successful!",

@@ -181,7 +181,8 @@
     "viewTransaction": "عرض المعاملة",
     "changeDegree": "تغيير الدرجة",
     "reschedule": "إعادة جدولة",
-    "cancelBooking": "إلغاء الحجز"
+    "cancelBooking": "إلغاء الحجز",
+    "ticketNumber": "رقم التذكرة"
   },
   "paymentResult": {
     "successTitle": "تم الدفع بنجاح!",

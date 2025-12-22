@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getReservation } from '../../axios/services/ticketService';
+import Barcode from '@kichiyaki/react-native-barcode-generator';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -28,7 +29,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 // --- Dynamic Data based on translation keys ---
 const tripDetailsKeys = [
-  "tripNumber", "tripDate", "vessel", "nationality",
+  "tripNumber", "ticketNumber", "tripDate", "vessel", "nationality",
   "degree", "route", "passportNumber", "reservationNumber"
 ];
 
@@ -78,12 +79,14 @@ const TicketCard = ({ t, i18n, passengerName, ticketData, summaryData }) => {
     tripNumber: summaryData?.tripSerial || ticketData?.tripSerial || '',
     tripDate: formatDate(summaryData?.startDate) || '',
     vessel: summaryData?.vessel || '',
-    nationality: '', // Not provided in API, would need nationality lookup
-    degree: '', // Would need degree name lookup from degreeCode
+    nationality: i18n.language === 'ar' ? ticketData?.nationality?.natArbName : ticketData?.nationality?.natName, // Not provided in API, would need nationality lookup
+    degree: i18n.language === 'ar' ? ticketData?.degree?.degreeArabName : ticketData?.degree?.degreeEnglishName, // Would need degree name lookup from degreeCode
     route: summaryData ? `${i18n.language === 'ar' ? summaryData.fromPortArab : summaryData.fromPortEng} - ${i18n.language === 'ar' ? summaryData.toPortArab : summaryData.toPortEng}` : '',
     passportNumber: ticketData?.passportNumber || '',
-    reservationNumber: ticketData?.oraclePrintTicketNo || ticketData?.oracleTicketNo || '',
+    ticketNumber: ticketData?.oracleTicketNo || '',
+    reservationNumber: ticketData?.oracleAgentResNo || ticketData?.oracleTicketNo || '',
   };
+console.log('Barcode value:', ticketData?.oraclePrintTicketNo);
 
   return (
     <View style={styles.cardContainer}>
@@ -107,7 +110,9 @@ const TicketCard = ({ t, i18n, passengerName, ticketData, summaryData }) => {
 
         <View style={styles.barcodeContainer}>
           <Image source={require('../../assets/images/linedot.png')} style={styles.separatorLine} resizeMode="stretch" />
-          <Image source={require('../../assets/images/barcode.png')} style={styles.barcodeImage} resizeMode="contain" />
+          {ticketData?.oraclePrintTicketNo && String(ticketData.oraclePrintTicketNo).length > 0 && (
+            <Barcode value={String(ticketData.oraclePrintTicketNo)} format="CODE128" />
+          )}
         </View>
       </View>
       <View style={[styles.ticketNotch, I18nManager.isRTL ? styles.notchRight : styles.notchLeft]} />
@@ -172,7 +177,11 @@ const ETicketScreen = () => {
         setPassengers(formattedPassengers);
       } catch (err) {
         console.error('Error fetching reservation:', err);
-        setError(err.message || 'Failed to load reservation');
+        if(err.response && err.response.status === 404) {
+          setNoResults(true);
+        } else {
+          setError(err.message || 'Failed to load reservation');
+        }
         setPassengers([]);
       } finally {
         setLoading(false);
@@ -198,6 +207,15 @@ const ETicketScreen = () => {
   const handleDownload = () => {
     router.push({
       pathname: '/confirmation',
+      params: {
+        ...params,
+      }
+    });
+  };
+
+  const handleCancelBooking = () => {
+    router.push({
+      pathname: '/cancel-booking',
       params: {
         ...params,
       }
@@ -283,7 +301,7 @@ const ETicketScreen = () => {
                   style={[styles.tabButton, index === selectedPassengerIndex ? styles.tabButtonActive : styles.tabButtonInactive]}
                   onPress={() => setSelectedPassengerIndex(index)}
                 >
-                  <Text style={styles.tabText}>{p.label}</Text>
+                  <Text style={styles.tabText}>{p.name}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -332,7 +350,7 @@ const ETicketScreen = () => {
               <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                 <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.reschedule')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => setMenuVisible(false)}>
+              <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => {setMenuVisible(false); handleCancelBooking()}}>
                 <Text style={[styles.menuText, styles.cancelText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.cancelBooking')}</Text>
               </TouchableOpacity>
             </View>
