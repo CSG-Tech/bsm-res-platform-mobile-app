@@ -344,12 +344,12 @@ const ETicketScreen = () => {
               <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                 <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.viewTransaction')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
+              {/* <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                 <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.changeDegree')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                 <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.reschedule')}</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
               <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => {setMenuVisible(false); handleCancelBooking()}}>
                 <Text style={[styles.menuText, styles.cancelText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.cancelBooking')}</Text>
               </TouchableOpacity>
