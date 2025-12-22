@@ -1,9 +1,16 @@
+import { G } from "react-native-svg";
+
 export const ENDPOINTS = {
   AUTH: {
     GUEST: '/auth/guest',
     SIGNUP: '/auth/signup',
     LOGIN: '/auth/login',
     REFRESH: '/auth/refresh',
+  },
+  OTP: {
+    SEND: '/otp/send',
+    VERIFY: '/otp/verify',
+    RESEND: '/otp/resend',
   },
   DEGREES: {
     GET_BY_TRIP: (tripserial, degreeName) =>
@@ -51,4 +58,13 @@ export const ENDPOINTS = {
     GET_DETAILS: (reservationId) => `/reservations/${reservationId}`,
     FIND_RESERVATION: '/reservations/findReservation',
   },
+  CANCELLATION:{
+    GET_POLICIES: (tripSerial) => `/reservations/${tripSerial}/cancellation-policy`,
+    CANCEL_RESERVATION: '/reservations/cancel',
+    CANCEL_TICKETS: '/reservations/cancel-tickets',
+  },
+  UPGRADE: {
+    GET_OPTIONS: (ticketId) => `/reservations/tickets/${ticketId}/available-degrees`,
+    UPGRADE_TICKET: '/reservations/tickets/change-degree',
+  }
 };

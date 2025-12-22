@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
+  Alert,
   I18nManager,
   Image,
   LayoutAnimation,
@@ -22,6 +23,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { getReservation } from '../../axios/services/ticketService';
 import Barcode from '@kichiyaki/react-native-barcode-generator';
+import OTPVerificationModal from '../otp/OTPVerificationModal';
+import { cancelReservation, cancelTickets, getCancellationPolicies } from '../../axios/services/cancellationService';
+import CancelReservationModal from '../modals/CancelReservationsModal';
+import CancelTicketsModal from '../modals/CancelTicketsModal';
+import Toast from 'react-native-toast-message';
+
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -137,6 +144,13 @@ const ETicketScreen = () => {
   const [error, setError] = useState(null);
   const [noResults, setNoResults] = useState(false);
   const menuButtonRef = useRef(null);
+  const [showOTP, setShowOTP] = useState(false);
+  const [showCancelReservationModal, setShowCancelReservationModal] = useState(false);
+  const [showCancelTicketsModal, setShowCancelTicketsModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [selectedTicketIds, setSelectedTicketIds] = useState([]);
+  const [cancelling, setCancelling] = useState(false);
+
 
   useEffect(() => {
     const fetchReservationData = async () => {
@@ -213,15 +227,103 @@ const ETicketScreen = () => {
     });
   };
 
-  const handleCancelBooking = () => {
-    router.push({
-      pathname: '/cancel-booking',
-      params: {
-        ...params,
+  const handleCancelReservationConfirm = async (reason) => {
+    if (!reason.trim()) {
+      Toast.show({ type: 'error', text1: t('eticket.reasonRequired') });
+      return;
+    }
+    
+    setCancelling(true);
+    try {
+      await cancelReservation({
+        reservationId: Number(reservationData?.summary?.id || params.reservationNumber),
+        reason: reason,
+        refundType: 'full'
+      });
+      
+      Toast.show({ type: 'success', text1: t('eticket.reservationCancelledSuccess') });
+      setShowCancelReservationModal(false);
+      router.back();
+    } catch (error) {
+      console.error('Cancel reservation error:', error);
+      console.error('Error response:', error.response?.data);
+      
+      // Handle 400 error specifically
+      if (error.response?.status === 400) {
+        Alert.alert(
+          t('eticket.cannotCancelTitle'),
+          t('eticket.cannotCancelRefunded'),
+          [
+            {
+              text: t('common.ok'),
+              onPress: () => setShowCancelReservationModal(false)
+            }
+          ]
+        );
+      } else {
+        const errorMessage = error.response?.data?.message 
+          || error.response?.data?.error
+          || error.message 
+          || t('eticket.cancellationFailed');
+        
+        Toast.show({ 
+          type: 'error', 
+          text1: errorMessage 
+        });
       }
-    });
+    } finally {
+      setCancelling(false);
+    }
   };
 
+  const handleCancelTicketsConfirm = async (ticketIds, reason) => {
+    if (ticketIds.length === 0) {
+      Toast.show({ type: 'error', text1: t('eticket.selectTickets') });
+      return;
+    }
+    if (!reason.trim()) {
+      Toast.show({ type: 'error', text1: t('eticket.reasonRequired') });
+      return;
+    }
+    
+    setCancelling(true);
+    try {
+      await cancelTickets({ ticketIds, reason });
+      
+      Toast.show({ type: 'success', text1: t('eticket.ticketsCancelledSuccess') });
+      setShowCancelTicketsModal(false);
+      router.back();
+    } catch (error) {
+      console.error('Cancel tickets error:', error);
+      console.error('Error response:', error.response?.data);
+      
+      // Handle 400 error specifically
+      if (error.response?.status === 400) {
+        Alert.alert(
+          t('eticket.cannotCancelTitle'),
+          t('eticket.cannotCancelRefunded'),
+          [
+            {
+              text: t('common.ok'),
+              onPress: () => setShowCancelTicketsModal(false)
+            }
+          ]
+        );
+      } else {
+        const errorMessage = error.response?.data?.message 
+          || error.response?.data?.error
+          || error.message 
+          || t('eticket.cancellationFailed');
+        
+        Toast.show({ 
+          type: 'error', 
+          text1: errorMessage 
+        });
+      }
+    } finally {
+      setCancelling(false);
+    }
+  };
   const currentPassenger = passengers[selectedPassengerIndex];
   const currentPassengerName = currentPassenger?.name || "Passenger";
   const currentTicketData = currentPassenger?.ticketData;
@@ -317,6 +419,26 @@ const ETicketScreen = () => {
             />
           </View>
 
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity style={styles.actionButtonPrimary}>
+              <Ionicons name="calendar-outline" size={20} color="#3B82F6" />
+              <Text style={styles.actionButtonTextPrimary}>{t('eticket.reschedule')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionButtonPrimary}>
+              <Ionicons name="swap-horizontal-outline" size={20} color="#3B82F6" />
+              <Text style={styles.actionButtonTextPrimary}>{t('eticket.changeDegree')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionButtonDanger}
+              onPress={() => setShowOTP(true)}
+            >
+              <Ionicons name="close-circle-outline" size={20} color="#EF4444" />
+              <Text style={styles.actionButtonTextDanger}>{t('eticket.cancelBooking')}</Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.instructionsSection}>
             <Text style={[styles.instructionsTitle, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.instructionsTitle')}</Text>
             <View style={styles.accordionContainer}>
@@ -344,19 +466,50 @@ const ETicketScreen = () => {
               <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                 <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.viewTransaction')}</Text>
               </TouchableOpacity>
-              {/* <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
+              <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                 <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.changeDegree')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                 <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.reschedule')}</Text>
-              </TouchableOpacity> */}
-              <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => {setMenuVisible(false); handleCancelBooking()}}>
-                <Text style={[styles.menuText, styles.cancelText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.cancelBooking')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.menuItem} onPress={() => {
+                setMenuVisible(false); 
+                setShowCancelTicketsModal(true);
+              }}>
+                <Text style={[styles.menuText, styles.cancelText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
+                  {t('eticket.cancelTickets')}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+      <OTPVerificationModal
+        visible={showOTP}
+        onClose={() => setShowOTP(false)}
+        onSuccess={() => {
+          console.log("OTP Success!");
+          setShowOTP(false);
+          setShowCancelReservationModal(true);
+        }}
+        phoneNumber="+201234567890"
+      />
+      <CancelReservationModal
+        visible={showCancelReservationModal}
+        onClose={() => setShowCancelReservationModal(false)}
+        onConfirm={handleCancelReservationConfirm}
+        loading={cancelling}
+        reservationId={reservationData?.summary?.id || params.reservationNumber}
+      />
+
+      <CancelTicketsModal
+        visible={showCancelTicketsModal}
+        onClose={() => setShowCancelTicketsModal(false)}
+        passengers={passengers}
+        onConfirm={handleCancelTicketsConfirm}
+        loading={cancelling}
+        reservationId={reservationData?.summary?.id || params.reservationNumber}
+      />
     </SafeAreaView>
   );
 };
@@ -562,6 +715,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   downloadText: { fontFamily: 'Inter-Bold', fontSize: 16, color: 'white' },
+  actionButtonsContainer: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+    gap: 12,
+  },
+  actionButtonPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1.5,
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    paddingVertical: 16,
+    gap: 8,
+  },
+  actionButtonTextPrimary: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 15,
+    color: '#3B82F6',
+  },
+  actionButtonDanger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
+    borderRadius: 12,
+    paddingVertical: 16,
+    gap: 8,
+  },
+  actionButtonTextDanger: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 15,
+    color: '#EF4444',
+  },
+
 });
 
 export default ETicketScreen;
