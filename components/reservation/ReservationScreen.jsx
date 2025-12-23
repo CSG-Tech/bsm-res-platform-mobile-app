@@ -1,4 +1,3 @@
-// ReservationScreen.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -21,7 +20,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ChevronDown, Plus, X } from "lucide-react-native";
-import { FloatingLabelDatePicker } from "./FloatingLabelDatePicker";
+import FloatingLabelDatePicker from "./FloatingLabelDatePicker";
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { useForm, Controller } from "react-hook-form";
 
 // API helpers
 import {
@@ -30,9 +31,30 @@ import {
   getAllNationalities,
   getAllPrices,
 } from "../../axios/services/reservationService";
+// fields as mandatory
+const REQUIRED_FIELDS = [
+  "firstName",
+  "lastName",
+  "birthdate",
+  "nationality",
+  "birthplace",
+  "class",
+  "visaNumber",
+  "visaType",
+  "passportNumber",
+  "passportIssuingDate",
+  "passportExpirationDate",
+];
+const isPassengerValid = (passenger) => {
+  return REQUIRED_FIELDS.every((field) => {
+    const value = passenger[field];
+    if (typeof value === "string") return value.trim().length > 0;
+    return value !== null && value !== undefined;
+  });
+};
 
 /* -------------------------------------
-   Utilities
+  Utilities
 -------------------------------------*/
 const parseDateSafe = (value) => {
   if (!value) return null;
@@ -56,7 +78,7 @@ const createEmptyPassenger = (id) => ({
 });
 
 /* -------------------------------------
-   FloatingLabelSelect
+  FloatingLabelSelect
 -------------------------------------*/
 const FloatingLabelSelect = ({
   label,
@@ -214,9 +236,9 @@ const FloatingLabelSelect = ({
 };
 
 /* -------------------------------------
-   FloatingLabelInput
+  FloatingLabelInput
 -------------------------------------*/
-const FloatingLabelInput = ({ label, placeholder, value, onChangeText, styles, onFocus }) => (
+const FloatingLabelInput = ({ label, placeholder, value, onChangeText, styles }) => (
   <View style={styles.inputContainer}>
     <Text style={[styles.inputLabel, I18nManager.isRTL ? { right: 14 } : { left: 14 }]}>{label}</Text>
     <TextInput 
@@ -225,13 +247,12 @@ const FloatingLabelInput = ({ label, placeholder, value, onChangeText, styles, o
       style={[styles.textInput, { textAlign: I18nManager.isRTL ? "right" : "left" }]} 
       value={value} 
       onChangeText={onChangeText}
-      onFocus={onFocus}
     />
   </View>
 );
 
 /* -------------------------------------
-   PassengerInformationSection
+  PassengerInformationSection
 -------------------------------------*/
 const PassengerInformationSection = ({
   passengers,
@@ -274,27 +295,12 @@ const PassengerInformationSection = ({
 );
 
 /* -------------------------------------
-   TravelDetailsSection
+  TravelDetailsSection
 -------------------------------------*/
-const TravelDetailsSection = ({ passengerDetails, onInputChange, t, tripSerial, styles, scrollViewRef }) => {
+const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors,watch, t, styles,tripSerial }) => {
   if (!passengerDetails) return null;
   const { i18n } = useTranslation();
-  
-  const inputRefs = React.useRef({});
-
-  const handleInputFocus = (fieldName) => {
-    setTimeout(() => {
-      const ref = inputRefs.current[fieldName];
-      if (ref && scrollViewRef?.current) {
-        ref.measure((x, y, width, height, pageX, pageY) => {
-          scrollViewRef.current.scrollTo({
-            y: pageY - 150,
-            animated: true,
-          });
-        });
-      }
-    }, 100);
-  };
+  const passengerId = passengerDetails.id;
 
   const genderOptions = [
     { id: "M", label: t("reservation.male") || "Male" },
@@ -305,50 +311,40 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, t, tripSerial, 
     <View style={styles.travelDetailsContainer}>
       <View style={styles.formSection}>
         <Text style={styles.formSectionTitle}>{t("reservation.passengerInfo")}</Text>
-
         <View style={styles.inputRow}>
-          <View style={{flex: 1}} ref={(ref) => (inputRefs.current['firstName'] = ref)} collapsable={false}>
+          <View style={{flex: 1}} >
             <FloatingLabelInput
               label={t("reservation.firstName")}
               placeholder={t("reservation.enter")}
               value={passengerDetails.firstName}
               onChangeText={(text) => onInputChange("firstName", text)}
-              onFocus={() => handleInputFocus('firstName')}
               styles={styles}
             />
           </View>
-          <View style={{flex: 1}} ref={(ref) => (inputRefs.current['lastName'] = ref)} collapsable={false}>
+          <View style={{flex: 1}}>
             <FloatingLabelInput
               label={t("reservation.lastName")}
               placeholder={t("reservation.enter")}
               value={passengerDetails.lastName}
               onChangeText={(text) => onInputChange("lastName", text)}
-              onFocus={() => handleInputFocus('lastName')}
               styles={styles}
             />
           </View>
         </View>
-
-        <View ref={(ref) => (inputRefs.current['middleName'] = ref)} collapsable={false}>
           <FloatingLabelInput
             label={t("reservation.middleName")}
             placeholder={t("reservation.enter")}
             value={passengerDetails.middleName}
             onChangeText={(text) => onInputChange("middleName", text)}
-            onFocus={() => handleInputFocus('middleName')}
             styles={styles}
           />
-        </View>
-
         <FloatingLabelSelect
           label={t("reservation.gender")}
           placeholder={t("reservation.select")}
           options={genderOptions}
           valueLabel={passengerDetails.gender ? genderOptions.find((g) => g.id === passengerDetails.gender)?.label : null}
           onSelect={(item) => onInputChange("gender", item.id)}
-          styles={styles}
-        />
-
+          styles={styles}/>
         <FloatingLabelDatePicker 
           label={t("reservation.birthdate")} 
           placeholder="DD/MM/YYYY" 
@@ -357,10 +353,8 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, t, tripSerial, 
           styles={styles} 
         />
       </View>
-
       <View style={styles.formSection}>
         <Text style={styles.formSectionTitle}>{t("reservation.travelDetails")}</Text>
-
         <FloatingLabelSelect
           label={t("reservation.nationality")}
           placeholder={t("reservation.select")}
@@ -376,18 +370,12 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, t, tripSerial, 
           renderItemLabel={(it, lang) => lang === "ar" ? it.natArbName : it.natName}
           styles={styles}
         />
-
-        <View ref={(ref) => (inputRefs.current['birthplace'] = ref)} collapsable={false}>
           <FloatingLabelInput 
             label={t("reservation.birthplace")} 
             placeholder={t("reservation.enter")} 
             value={passengerDetails.birthplace} 
             onChangeText={(text) => onInputChange("birthplace", text)}
-            onFocus={() => handleInputFocus('birthplace')}
-            styles={styles} 
-          />
-        </View>
-
+            styles={styles} />
         <FloatingLabelSelect
           label={t("reservation.class")}
           placeholder={t("reservation.select")}
@@ -406,18 +394,13 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, t, tripSerial, 
           }
           styles={styles}
         />
-
-        <View ref={(ref) => (inputRefs.current['visaNumber'] = ref)} collapsable={false}>
           <FloatingLabelInput 
             label={t("reservation.visaNumber")} 
             placeholder={t("reservation.enter")} 
             value={passengerDetails.visaNumber} 
             onChangeText={(text) => onInputChange("visaNumber", text)}
-            onFocus={() => handleInputFocus('visaNumber')}
             styles={styles} 
           />
-        </View>
-
         <FloatingLabelSelect
           label={t("reservation.visaType")}
           placeholder={t("reservation.select")}
@@ -439,46 +422,82 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, t, tripSerial, 
 
       <View style={styles.formSection}>
         <Text style={styles.formSectionTitle}>{t("reservation.passportDetails")}</Text>
-        
-        <View ref={(ref) => (inputRefs.current['passportNumber'] = ref)} collapsable={false}>
-          <FloatingLabelInput 
-            label={t("reservation.passportNumber")} 
-            placeholder={t("reservation.enter")} 
-            value={passengerDetails.passportNumber} 
-            onChangeText={(text) => onInputChange("passportNumber", text)}
-            onFocus={() => handleInputFocus('passportNumber')}
-            styles={styles} 
+        {/* passport number */}
+          <Controller
+            control={control}
+            name={`${passengerId}.passportNumber`}
+            rules={{
+              required: "Passport number is required",
+              pattern: {
+                value: /^[A-Z0-9]{6,9}$/,
+                message: "Invalid passport number (6-9 uppercase letters/numbers)"
+              }
+            }}
+            render={({ field: { onChange, value } }) => (
+              <FloatingLabelInput
+                label={t("reservation.passportNumber")}
+                placeholder={t("reservation.enter")}
+                value={value}
+                onChangeText={onChange}
+                styles={styles}
+              />
+            )}
           />
-        </View>
-
-        <View ref={(ref) => (inputRefs.current['passportIssuingDate'] = ref)} collapsable={false}>
-          <FloatingLabelInput 
-            label={t("reservation.passportIssuingDate")} 
-            placeholder="DD/MM/YYYY" 
-            value={passengerDetails.passportIssuingDate} 
-            onChangeText={(text) => onInputChange("passportIssuingDate", text)}
-            onFocus={() => handleInputFocus('passportIssuingDate')}
-            styles={styles} 
+            {errors[passengerId]?.passportNumber && (
+              <Text style={{ color: "red" }}>{errors[passengerId].passportNumber.message}</Text>
+          )}
+          {/* passport issuing date */}
+          <Controller
+              control={control}
+              name={`${passengerId}.passportIssuingDate`}
+              rules={{
+                required: "Issuing date is required",
+                validate: (val) => new Date(val) <= new Date() || "Issuing date cannot be in the future"
+              }}
+              render={({ field: { onChange, value } }) => (
+                <FloatingLabelDatePicker
+                  label={t("reservation.passportIssuingDate")}
+                  placeholder="DD/MM/YYYY"
+                  value={value}
+                  onChangeDate={onChange}
+                  styles={styles}
+                />
+              )}
+            />
+            {errors[passengerId]?.passportIssuingDate && (
+              <Text style={{ color: "red" }}>{errors[passengerId].passportIssuingDate.message}</Text>
+          )}
+          {/* passport expiration date */}
+          <Controller
+            control={control}
+            name={`${passengerId}.passportExpirationDate`}
+            rules={{
+              required: "Expiration date is required",
+              validate: (val) => {
+                const issueDate = watch(`${passengerId}.passportIssuingDate`);
+                return new Date(val) > new Date(issueDate) || "Expiration must be after issue date";
+              }
+            }}
+            render={({ field: { onChange, value } }) => (
+              <FloatingLabelDatePicker
+                label={t("reservation.passportExpirationDate")}
+                placeholder="DD/MM/YYYY"
+                value={value}
+                onChangeDate={onChange}
+                styles={styles}
+              />
+            )}
           />
-        </View>
-
-        <View ref={(ref) => (inputRefs.current['passportExpirationDate'] = ref)} collapsable={false}>
-          <FloatingLabelInput 
-            label={t("reservation.passportExpirationDate")} 
-            placeholder="DD/MM/YYYY" 
-            value={passengerDetails.passportExpirationDate} 
-            onChangeText={(text) => onInputChange("passportExpirationDate", text)}
-            onFocus={() => handleInputFocus('passportExpirationDate')}
-            styles={styles} 
-          />
-        </View>
+          {errors[passengerId]?.passportExpirationDate && (
+            <Text style={{ color: "red" }}>{errors[passengerId].passportExpirationDate.message}</Text>
+        )}
       </View>
     </View>
   );
 };
 
 /* -------------------------------------
-   Main ReservationScreen
+  Main ReservationScreen
 -------------------------------------*/
 const ReservationScreen = () => {
   const router = useRouter();
@@ -488,7 +507,8 @@ const ReservationScreen = () => {
   const [availablePrices, setAvailablePrices] = useState([]);
   const [loadingPrices, setLoadingPrices] = useState(false);
 
-  useEffect(() => {
+
+ useEffect(() => {
     const fetchPrices = async () => {
       if (!tripSerial) return;
       
@@ -505,7 +525,7 @@ const ReservationScreen = () => {
     };
     
     fetchPrices();
-  }, []);
+  }, [tripSerial]);
 
   const safeParse = (v) => {
     if (!v) return null;
@@ -611,6 +631,36 @@ const ReservationScreen = () => {
   const totalPrice = (allPassengersDetails || []).reduce((sum, passenger) => {
     return sum + (passenger.price || 0);
   }, 0);
+  const isFormValid = allPassengersDetails.every(isPassengerValid);
+// validation for passport, expiry and start date
+const { control, handleSubmit, watch, formState: { errors } } = useForm({
+  defaultValues: allPassengersDetails.reduce((acc, p) => {
+    acc[p.id] = { 
+      passportNumber: p.passportNumber,
+      passportIssuingDate: p.passportIssuingDate,
+      passportExpirationDate: p.passportExpirationDate
+    };
+    return acc;
+  }, {})
+});
+const hasErrors = Object.keys(errors).length > 0;
+
+const onSubmit = (data) => {
+  const updatedPassengers = allPassengersDetails.map((p) => ({
+    ...p,
+    passportNumber: data[p.id].passportNumber,
+    passportIssuingDate: data[p.id].passportIssuingDate,
+    passportExpirationDate: data[p.id].passportExpirationDate
+  }));
+  
+  const payload = {
+    tripSerial,
+    fromPort,
+    toPort,
+    passengers: updatedPassengers
+  };
+  router.push({ pathname: "/summary", params: { payload: JSON.stringify(payload) } });
+};
 
   const currencyDisplay = useMemo(() => {
     const firstPrice = availablePrices[0];
@@ -629,43 +679,40 @@ const ReservationScreen = () => {
           </TouchableOpacity>
           <Text style={stylesComputed.headerTitle}>{t("reservation.headerTitle")}</Text>
         </View>
-
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
-          keyboardVerticalOffset={0}
-        >
-          <ScrollView 
-            ref={scrollViewRef}
+          keyboardVerticalOffset={0} >
+          <KeyboardAwareScrollView
+            style={{ flex: 1 }}
             contentContainerStyle={stylesComputed.scrollContent}
+            enableOnAndroid={true}
+            extraScrollHeight={120}
             keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
+            showsVerticalScrollIndicator={false}>
             <View style={stylesComputed.tripSummary}>
               <Text style={stylesComputed.tripTitle}>{incomingTrip?.tripName ?? t("reservation.trip")}</Text>
               <Text style={stylesComputed.tripSub}>{`${fromPort} → ${toPort}`}</Text>
               <Text style={stylesComputed.tripSub}>{`${t("reservation.class")}: ${travelClassFromParams}`}</Text>
             </View>
-
             <PassengerInformationSection
               passengers={passengerTabs}
               selectedPassengerId={selectedPassengerId}
               onSelectPassenger={setSelectedPassengerId}
               onAddPassenger={handleAddPassenger}
               onRemovePassenger={handleRemovePassenger}
-              styles={stylesComputed}
-            />
-
+              styles={stylesComputed}/>
             <TravelDetailsSection
               passengerDetails={currentPassengerDetails}
               onInputChange={(field, value) => updatePassengerField(selectedPassengerId, field, value)}
+              control={control}     
+              errors={errors}       
+              watch={watch}         
               t={t}
               tripSerial={tripSerial}
               styles={stylesComputed}
-              scrollViewRef={scrollViewRef}
-            />
-          </ScrollView>
-
+              scrollViewRef={scrollViewRef}/>
+          </KeyboardAwareScrollView>
           <View style={stylesComputed.footer}>
             <View style={stylesComputed.priceSection}>
               <View style={stylesComputed.priceRow}>
@@ -688,11 +735,11 @@ const ReservationScreen = () => {
                 </Text>
               </View>
             </View>
-            
             <TouchableOpacity 
-              style={stylesComputed.continueButton} 
-              onPress={handleContinue}
-            >
+              style={[stylesComputed.continueButton,
+                  !isFormValid && { backgroundColor: "#b6bdcf" }]}
+              disabled={!isFormValid && hasErrors} 
+              onPress={handleSubmit(onSubmit)}>
               <Text style={stylesComputed.continueButtonText}>
                 {t("reservation.continue")}
               </Text>
@@ -705,7 +752,7 @@ const ReservationScreen = () => {
 };
 
 /* -------------------------------------
-   Styles
+  Styles
 -------------------------------------*/
 const getStyles = (isRTL) =>
   StyleSheet.create({
@@ -756,8 +803,8 @@ const getStyles = (isRTL) =>
       position: "relative",
       backgroundColor: "white",
     },
-    inputLabel: { position: "absolute", top: -10, left: 14, backgroundColor: "white", paddingHorizontal: 8, fontFamily: "Inter-Regular", fontSize: 14, color: "#4e4e4e" },
-    textInput: { fontFamily: "Inter-Regular", fontSize: 14, color: "black", height: "100%" },
+    inputLabel: { position: "absolute", top: -10, left: 14, backgroundColor: "white", paddingHorizontal: 8, fontFamily: "Inter-Regular", fontSize: 13, color: "#4e4e4e" },
+    textInput: { fontFamily: "Inter-Regular", fontSize: 14, color: "black", height: "100%"},
     selectContent: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
     selectPlaceholder: { fontFamily: "Inter-Regular", fontSize: 14 },
 
@@ -822,9 +869,9 @@ const getStyles = (isRTL) =>
       fontSize: 18,
       color: "#092863",
     },
-  });
+});
 
 /* -------------------------------------
-   Export
+  Export
 -------------------------------------*/
 export default ReservationScreen;
