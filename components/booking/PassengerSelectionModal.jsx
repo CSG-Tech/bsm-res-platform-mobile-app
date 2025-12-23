@@ -92,25 +92,37 @@ export const PassengerSelectionModal = ({ visible, onClose, onConfirm, initialCo
     const { t } = useTranslation();
     const [tempCounts, setTempCounts] = useState(initialCounts);
     const [dragDistance, setDragDistance] = useState(0);
-// drag down to close (number of passengers) 
-const panResponder = useRef(
-  PanResponder.create({
-    onStartShouldSetPanResponder: () => true, 
-    onMoveShouldSetPanResponder: (_, gestureState) => false,
-    onPanResponderMove: (_, gestureState) => {
-      if (gestureState.dy > 0) setDragDistance(gestureState.dy);
-    },
-    onPanResponderRelease: (_, gestureState) => {
-      if (gestureState.dy > 100) onClose();
-      else setDragDistance(0);
-    },
-  })
-).current;
+
+    // Drag down to close - only on header area
+    const panResponder = useRef(
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: (_, gestureState) => {
+          // Only activate drag if moving vertically more than horizontally
+          return Math.abs(gestureState.dy) > Math.abs(gestureState.dx) && gestureState.dy > 5;
+        },
+        onPanResponderMove: (_, gestureState) => {
+          // Only allow dragging down
+          if (gestureState.dy > 0) {
+            setDragDistance(gestureState.dy);
+          }
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          // Close if dragged down more than 100px
+          if (gestureState.dy > 100) {
+            onClose();
+          } else {
+            setDragDistance(0);
+          }
+        },
+        onPanResponderTerminationRequest: () => true,
+      })
+    ).current;
 
     useEffect(() => {
         if (visible) {
             setTempCounts(initialCounts);
-            setDragDistance(0); // reset drag
+            setDragDistance(0);
         }
     }, [visible, initialCounts]);
 
@@ -130,9 +142,12 @@ const panResponder = useRef(
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalContainer,  { transform: [{ translateY: dragDistance }] }]}>
-          <View style={styles.handleBar} {...panResponder.panHandlers} />
-          <Text style={styles.modalTitle}>{t('passenger.modalTitle')}</Text>
+        <View style={[styles.modalContainer, { transform: [{ translateY: dragDistance }] }]}>
+          {/* Only the header area is draggable */}
+          <View style={styles.draggableHeader} {...panResponder.panHandlers}>
+            <View style={styles.handleBar} />
+            <Text style={styles.modalTitle}>{t('passenger.modalTitle')}</Text>
+          </View>
           
           <View style={styles.countersWrapper}>
             {passengerTypes.map((type, index) => (
@@ -190,8 +205,11 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
-        paddingTop: 24,
         paddingBottom: 40,
+    },
+    draggableHeader: {
+        paddingTop: 24,
+        paddingBottom: 24,
     },
     handleBar: {
         width: 56,
@@ -207,7 +225,6 @@ const styles = StyleSheet.create({
         color: 'black',
         fontSize: 18,
         textAlign: 'center',
-        marginBottom: 24,
         paddingHorizontal: 24,
     },
     countersWrapper: {
@@ -224,11 +241,11 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     imageContainer: {
-    height: 50, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginBottom: 12, 
-},
+        height: 50, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        marginBottom: 12, 
+    },
     separator: {
         width: 1,
         height: 180, 
