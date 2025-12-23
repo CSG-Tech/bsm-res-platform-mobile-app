@@ -340,7 +340,7 @@ const SearchResultsScreen = () => {
               <ActivityIndicator size="large" color="#092863" />
             ) : vesselData.length > 0 ? (
               vesselData.map((vessel, index) => (
-                  <TicketWidget>
+                  <TicketWidget key={index}>
                     <View style={styles.vesselCardHeader}>
                       <Text style={styles.vesselName}>{vessel.vesselName || 'N/A'}</Text>                 
                     </View>
@@ -421,9 +421,9 @@ const SearchResultsScreen = () => {
                 theme={{
                   todayTextColor: '#6291E8',
                   arrowColor: '#6291E8',
-                  textDayFontFamily: 'Inter-Regular',
-                  textMonthFontFamily: 'Inter-Bold',
-                  textDayHeaderFontFamily: 'Inter-Medium',
+                  textDayFontFamily: 'Cairo-Regular',
+                  textMonthFontFamily: 'Cairo-Bold',
+                  textDayHeaderFontFamily: 'Cairo-Medium',
                 }}
               />
               <TouchableOpacity style={styles.closeButton} onPress={() => setIsCalendarVisible(false)}>
@@ -444,23 +444,29 @@ const getStyles = (isRTL) => StyleSheet.create({
   screenHeader: {
     flexDirection: isRTL ? 'row-reverse' : 'row',
     alignItems: 'center',
-    textAlign: 'right',
+    justifyContent: 'space-between',
     paddingHorizontal: 24,
     paddingVertical: 20,
     backgroundColor: 'white',
     borderBottomColor: '#f0f0f0',
-    gap: 50,
+  },
+  backButton: {
+    width: 34,
+    height: 34,
   },
   backArrowIcon: {
     width: 34,
     height: 34,
   },
   screenTitle: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontSize: 18,
     color: 'black',
     textAlign: 'center',
-    textAlign: isRTL ? 'right' : 'left',
+    flex: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
   },
   scrollViewContent: {
     flexGrow: 1,
@@ -480,7 +486,7 @@ const getStyles = (isRTL) => StyleSheet.create({
     alignItems: 'center',
   },
   portName: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontWeight: 'bold',
     color: 'black',
     fontSize: 16,
@@ -494,7 +500,7 @@ const getStyles = (isRTL) => StyleSheet.create({
     marginHorizontal: 8,
   },
   passengerInfo: {
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'Cairo-Medium',
     fontWeight: '600',
     color: '#000000ff',
     fontSize: 14,
@@ -521,7 +527,7 @@ const getStyles = (isRTL) => StyleSheet.create({
   },
   toggleText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'Cairo-Medium',
     fontWeight: '600',
     color: '#333',
   },
@@ -564,7 +570,7 @@ const getStyles = (isRTL) => StyleSheet.create({
     backgroundColor: '#BAD4FF',
   },
   dayText: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontWeight: 'bold',
     fontSize: 13,
     color: '#B6BDCF',
@@ -574,7 +580,7 @@ const getStyles = (isRTL) => StyleSheet.create({
     color: '#6291E8',
   },
   dateText: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontWeight: 'bold',
     fontSize: 16,
     color: 'black',
@@ -588,7 +594,7 @@ const getStyles = (isRTL) => StyleSheet.create({
     borderTopRightRadius: 32, 
   },
   availableVesselsHeader: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontWeight: 'bold',
     fontSize: 16,
     color: '#092863aa',
@@ -606,20 +612,20 @@ const getStyles = (isRTL) => StyleSheet.create({
     alignItems: 'center',
   },
   vesselName: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontWeight: 'bold',
     fontSize: 18,
     color: 'black',
     textAlign: isRTL ? 'right' : 'left',
   },
   estPriceLabel: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Cairo-Regular',
     fontSize: 15,
     color: '#7E92B9',
     textAlign: isRTL ? 'right' : 'left',
   },
   price: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontWeight: 'bold',
     color: '#6291E8',
     fontSize: 18,

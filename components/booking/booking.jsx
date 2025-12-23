@@ -13,9 +13,10 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAllClasses, getFromPorts, getToPorts, getTripsByDateAndLine, } from '../../axios/services/searchService';
 import { PassengerSelectionModal } from './PassengerSelectionModal';
 import * as Updates from 'expo-updates';
@@ -24,7 +25,7 @@ import HomeIcon from '../../assets/images/icons/Home.svg';
 import TicketsIcon from '../../assets/images/icons/Tickets.svg';
 import ManageIcon from '../../assets/images/icons/Manage.svg';
 import SwapIcon from '../../assets/images/icons/swap-icon.svg';
-import BackgroundImage from '../../assets/images/background/background.svg';
+import BackgroundImage from '../../assets/images/background/background.png';
 import FromIcon from '../../assets/images/icons/from-icon.svg';
 import ToIcon from '../../assets/images/icons/to-icon.svg';
 import CalendarIcon from '../../assets/images/icons/calendar-icon.svg';
@@ -66,57 +67,59 @@ const convertToArabicNumerals = (number) => {
 };
 const PORTS = [{ id: '1', name: 'Jeddah Islamic Port' }, { id: '2', name: 'King Abdullah Port' }, { id: '3', name: 'Dammam Port' }];
 
-const getStyles = (isRTL) => {
+const getStyles = (isRTL, width, height) => {
+  const scale = width / 375; // Base width for scaling, assuming iPhone 6/7/8 width
+  const fontScale = Math.min(scale, 1.2); // Cap font scaling
+
   return StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#EBF2FF' },
-    topBackgroundImage: { position: 'absolute', top: 0, left: 0, right: 0, width: '100%', height: 350 },
-    switchLanguage: { paddingHorizontal: 16, paddingTop: 20, alignItems: isRTL ? 'flex-start' : 'flex-end' },
-    headerContent: { paddingTop: 10, paddingHorizontal: 16, flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between' },
-    headerTitle: { flex: 1, fontFamily: 'Inter-Bold', fontWeight: 'bold', color: 'white', fontSize: 32, textAlign: isRTL ? 'right' : 'left' },
+    switchLanguage: { paddingHorizontal: width * 0.04, paddingTop: height * 0.02, alignItems: isRTL ? 'flex-start' : 'flex-end' },
+    headerContent: { paddingTop: height * 0.01, paddingHorizontal: width * 0.04, flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between' },
+    headerTitle: { flex: 1, fontFamily: 'Cairo-Bold', fontWeight: 'bold', color: 'white', fontSize: 32 * fontScale, textAlign: isRTL ? 'right' : 'left' },
     rightHeaderItems: { alignItems: 'flex-end' },
-    languageContainer: { marginBottom: 8 },
-    languageText: { fontFamily: 'Inter-Regular', color: 'white', fontSize: 16 },
+    languageContainer: { marginBottom: height * 0.008 },
+    languageText: { fontFamily: 'Cairo-Regular', color: 'white', fontSize: 16 * fontScale },
     notificationButton: { padding: 0 },
-    notificationIcon: { width: 48, height: 48 },
-    card: { marginHorizontal: 15, backgroundColor: 'white', borderRadius: 24, padding: 10, marginTop: 20, elevation: 5 },
-    toggleGroup: { flexDirection: isRTL ? 'row-reverse' : 'row', height: 56, backgroundColor: 'white', borderRadius: 64, borderWidth: 1, borderColor: '#878d9a', padding: 4, marginBottom: 24 },
+    notificationIcon: { width: width * 0.12, height: width * 0.12 },
+    card: { marginHorizontal: width * 0.04, backgroundColor: 'white', borderRadius: 24, padding: width * 0.04, marginTop: height * 0.02, elevation: 5 },
+    toggleGroup: { flexDirection: isRTL ? 'row-reverse' : 'row', height: height * 0.07, backgroundColor: 'white', borderRadius: 64, borderWidth: 1, borderColor: '#878d9a', padding: width * 0.01, marginBottom: height * 0.03 },
     toggleButton: { flex: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 64 },
     toggleButtonActive: { backgroundColor: '#6291e8' },
-    toggleButtonText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#1e1e1e' },
-    toggleTextDisabled: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#d9e1e8' },
+    toggleButtonText: { fontFamily: 'Cairo-Regular', fontSize: 14 * fontScale, color: '#1e1e1e' },
+    toggleTextDisabled: { fontFamily: 'Cairo-Regular', fontSize: 14 * fontScale, color: '#d9e1e8' },
     toggleButtonTextActive: { color: 'white' },
-    inputFieldContainer: { marginBottom: 17 },
-    inputButton: { flexDirection: isRTL ? 'row-reverse' : 'row', height: 56, alignItems: 'center', gap: 12, paddingHorizontal: 24, backgroundColor: 'white', borderRadius: 16, borderWidth: 1, borderColor: '#878d9a' },
-    inputIcon: { width: 16, height: 16, resizeMode: 'contain', flexShrink: 0 },
-    placeholderText: { flex: 1, fontFamily: 'Inter-Regular', color: '#878d9a', fontSize: 14, textAlign: isRTL ? 'right' : 'left' },
-    valueText: { flex: 1, fontFamily: 'Inter-SemiBold', fontWeight: '600', color: '#1e1e1e', fontSize: 14, textAlign: isRTL ? 'right' : 'left' },
-    labelContainer: { position: 'absolute', top: -12, backgroundColor: 'white', paddingHorizontal: 8, left: isRTL ? undefined : 14, right: isRTL ? 14 : undefined, includeFontPadding: false, },
-    labelText: { fontFamily: 'Inter-Regular', color: '#4e4e1e', fontSize: 14 },
-    row: { flexDirection: isRTL ? 'row-reverse' : 'row', gap: 16, marginBottom: 24 },
+    inputFieldContainer: { marginBottom: height * 0.017 },
+    inputButton: { flexDirection: isRTL ? 'row-reverse' : 'row', height: height * 0.07, alignItems: 'center', gap: width * 0.03, paddingHorizontal: width * 0.06, backgroundColor: 'white', borderRadius: 16, borderWidth: 1, borderColor: '#878d9a' },
+    inputIcon: { width: width * 0.04, height: width * 0.04, resizeMode: 'contain', flexShrink: 0 },
+    placeholderText: { flex: 1, fontFamily: 'Cairo-Regular', color: '#878d9a', fontSize: 14 * fontScale, textAlign: isRTL ? 'right' : 'left' },
+    valueText: { flex: 1, fontFamily: 'Cairo-SemiBold', fontWeight: '600', color: '#1e1e1e', fontSize: 14 * fontScale, textAlign: isRTL ? 'right' : 'left' },
+    labelContainer: { position: 'absolute', top: -height * 0.012, backgroundColor: 'white', paddingHorizontal: width * 0.02, left: isRTL ? undefined : width * 0.035, right: isRTL ? width * 0.035 : undefined, includeFontPadding: false, },
+    labelText: { fontFamily: 'Cairo-Regular', color: '#4e4e1e', fontSize: 14 * fontScale },
+    row: { flexDirection: isRTL ? 'row-reverse' : 'row', gap: width * 0.04, marginBottom: height * 0.024 },
     rowItem: { flex: 1, minWidth: '48%' },
-    swapButton: { position: 'absolute', top: 131, width: 70, height: 64, borderRadius: 52, backgroundColor: '#6291e8', justifyContent: 'center', alignItems: 'center', zIndex: 10, left: isRTL ? 24 : undefined, right: isRTL ? undefined : 24 },
-    swapIcon: { width: 116, height: 116 },
-    searchButton: { height: 56, backgroundColor: '#06193b', borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginTop: 3 },
-    searchButtonText: { fontFamily: 'Inter-Bold', fontWeight: 'bold', color: 'white', fontSize: 14 },
-    navigation: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: isRTL ? 'row-reverse' : 'row', height: 95, justifyContent: 'space-around', alignItems: 'center', paddingHorizontal: 30, backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, elevation: 5 },
-    navItem: { alignItems: 'center', gap: 4, padding: 12, borderRadius: 16 },
-    navIcon: { width: 26, height: 22, tintColor: '#878d9a' },
+    swapButton: { position: 'absolute', top: height * 0.16, width: width * 0.16, height: width * 0.16, borderRadius: width * 0.08, backgroundColor: '#6291e8', justifyContent: 'center', alignItems: 'center', zIndex: 10, left: isRTL ? width * 0.04 : undefined, right: isRTL ? undefined : width * 0.04 },
+    swapIcon: { width: width * 0.08, height: width * 0.08 },
+    searchButton: { height: height * 0.07, backgroundColor: '#06193b', borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginTop: height * 0.003 },
+    searchButtonText: { fontFamily: 'Cairo-Bold', fontWeight: 'bold', color: 'white', fontSize: 14 * fontScale },
+    navigation: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: isRTL ? 'row-reverse' : 'row', height: height * 0.095, justifyContent: 'space-around', alignItems: 'center', paddingHorizontal: width * 0.08, backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, elevation: 5 },
+    navItem: { alignItems: 'center', gap: height * 0.004, padding: width * 0.03, borderRadius: 16 },
+    navIcon: { width: width * 0.065, height: width * 0.055, tintColor: '#878d9a' },
     navIconActive: { tintColor: '#092863' },
-    navItemActive: { backgroundColor: '#ecf1f9', marginTop: -10, marginBottom: -10 },
-    navLabel: { fontFamily: 'Inter-Regular', fontSize: 12, fontWeight: 'bold', color: '#878d9a' },
+    navItemActive: { backgroundColor: '#ecf1f9', marginTop: -height * 0.01, marginBottom: -height * 0.01 },
+    navLabel: { fontFamily: 'Cairo-Regular', fontSize: 12 * fontScale, fontWeight: 'bold', color: '#878d9a' },
     navLabelActive: { fontWeight: 'bold', color: '#092863' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-    genericModalContainer: { width: '90%', backgroundColor: 'white', borderRadius: 20, padding: 16, alignSelf: 'center', maxHeight: '70%' },
-    genericModalTitle: { fontSize: 18, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
-    modalItem: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#eee' },
-    modalItemText: { fontSize: 16, textAlign: isRTL ? 'right' : 'left' },
-    closeButton: { marginTop: 10, paddingVertical: 14, backgroundColor: '#0A2351', borderRadius: 12, alignItems: 'center' },
+    genericModalContainer: { width: width * 0.9, backgroundColor: 'white', borderRadius: 20, padding: width * 0.04, alignSelf: 'center', maxHeight: height * 0.7 },
+    genericModalTitle: { fontSize: 18 * fontScale, fontWeight: 'bold', textAlign: 'center', marginBottom: height * 0.02 },
+    modalItem: { paddingVertical: height * 0.015, borderBottomWidth: 1, borderBottomColor: '#eee' },
+    modalItemText: { fontSize: 16 * fontScale, textAlign: isRTL ? 'right' : 'left' },
+    closeButton: { marginTop: height * 0.01, paddingVertical: height * 0.014, backgroundColor: '#0A2351', borderRadius: 12, alignItems: 'center' },
     closeButtonText: { color: 'white', fontWeight: 'bold' },
     calendar: { borderRadius: 16 },
-    calendarHeader: { paddingHorizontal: 16 },
-    arrowWrapper: { width: 32,height: 32, justifyContent: 'center', alignItems: 'center', marginTop: -4},
-    arrowText: {fontSize: 18,color: '#6291e8',fontWeight: 'bold'},
-    calendarContainer: { marginBottom: 16}
+    calendarHeader: { paddingHorizontal: width * 0.06 },
+    arrowWrapper: { width: width * 0.08, height: width * 0.08, justifyContent: 'center', alignItems: 'center', marginTop: -height * 0.004 },
+    arrowText: { fontSize: 18 * fontScale, color: '#6291e8', fontWeight: 'bold' },
+    calendarContainer: { marginBottom: height * 0.016 }
   });
 };
 
@@ -131,8 +134,10 @@ const ListSelectionModal = ({
   keyField = "id",
   labelFieldEn = "nameEn",
   labelFieldAr = "nameAr",
+  width,
+  height,
 }) => {
-  const styles = getStyles(isRTL);
+  const styles = getStyles(isRTL, width, height);
   const { i18n } = useTranslation();
 
   return (
@@ -167,14 +172,14 @@ const ListSelectionModal = ({
   );
 };
 
-const CalendarModal = ({ visible, onClose, onSelect, selectedDate, title, isRTL }) => {
-  const styles = getStyles(isRTL);
+const CalendarModal = ({ visible, onClose, onSelect, selectedDate, title, isRTL, width, height }) => {
+  const styles = getStyles(isRTL, width, height);
   const calendarTheme = {
     backgroundColor: '#ffffff', calendarBackground: '#ffffff', textSectionTitleColor: '#1e1e1e',
     selectedDayBackgroundColor: '#6291e8', selectedDayTextColor: '#ffffff', todayTextColor: '#6291e8',
     dayTextColor: '#1e1e1e', textDisabledColor: '#d9e1e8', arrowColor: '#6291e8',
-    monthTextColor: '#06193b', textDayFontFamily: 'Inter-Regular', textMonthFontFamily: 'Inter-Bold',
-    textDayHeaderFontFamily: 'Inter-Regular', textMonthFontSize: 18,
+    monthTextColor: '#06193b', textDayFontFamily: 'Cairo-Regular', textMonthFontFamily: 'Cairo-Bold',
+    textDayHeaderFontFamily: 'Cairo-Regular', textMonthFontSize: 18,
   };
   const markedDate = selectedDate ? { [selectedDate]: { selected: true } } : {};
 
@@ -225,7 +230,9 @@ const BookingScreen = () => {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const isRTL = i18n.language === 'ar';
-  const styles = getStyles(isRTL);
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const styles = getStyles(isRTL, width, height);
   const [isLoadingPorts, setIsLoadingPorts] = useState(false);
   const [fromPorts, setFromPorts] = useState([]);
   const [toPorts, setToPorts] = useState([]);
@@ -389,9 +396,12 @@ const BookingScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" />
-      <BackgroundImage style={styles.topBackgroundImage} />
+    <View style={{ flex: 1, backgroundColor: '#EBF2FF' }}>
+      <View style={{ position: 'absolute', top: 0, left: -insets.left, right: -insets.right, height: height * 0.4 }}>
+        <Image source={BackgroundImage} style={{ width: width + insets.left + insets.right, height: height * 0.4 }} />
+      </View>
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+        <StatusBar barStyle="light-content" />
       <View style={styles.switchLanguage}>
         <TouchableOpacity onPress={() => changeLanguage(i18n.language === 'en' ? 'ar' : 'en')}>
           <View style={styles.languageContainer}>
@@ -512,7 +522,8 @@ const BookingScreen = () => {
         keyField={"oraclePortCode"}
         labelFieldAr={"portArabName"}
         labelFieldEn={"portEnglishName"}
-
+        width={width}
+        height={height}
       />
 
       <ListSelectionModal
@@ -525,6 +536,8 @@ const BookingScreen = () => {
         keyField={"oracleClassId"}
         labelFieldAr={"classArabName"}
         labelFieldEn={"classEnglishName"}
+        width={width}
+        height={height}
       />
 
       <CalendarModal
@@ -534,6 +547,8 @@ const BookingScreen = () => {
         selectedDate={travelDate}
         title={t('booking.pickDate')}
         isRTL={isRTL}
+        width={width}
+        height={height}
       />
       <PassengerSelectionModal
         visible={isPassengerModalVisible}
@@ -542,6 +557,7 @@ const BookingScreen = () => {
         initialCounts={passengers}
       />
     </SafeAreaView>
+    </View>
   );
 };
 
