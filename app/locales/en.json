@@ -18,7 +18,8 @@
     "select": "Select",
     "search": "Search",
     "missingInfo": "Missing Information",
-    "missingInfoMessage": "Please select all fields before searching."
+    "missingInfoMessage": "Please select all fields before searching.",
+    "close":"Close"
   },
   "searchResults": {
     "title": "Search Results",
@@ -30,7 +31,9 @@
     "departure": "Departure",
     "arrival": "Arrival",
     "gregorian": "Gregorian",
-    "hijri": "Hijri"
+    "hijri": "Hijri",
+    "select": "Select",
+    "close":"Close"
   },
   "passenger": {
     "modalTitle": "Number of Passengers",

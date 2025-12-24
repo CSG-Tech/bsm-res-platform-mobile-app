@@ -1,10 +1,17 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { Dimensions } from 'react-native';
 
-const TicketWidget = ({ children }) => {
-  const width = 380;
-  const height = 250;
+
+
+const TicketWidget = ({ children, style }) => {
+
+  const SCREEN_WIDTH = Dimensions.get('window').width;
+  const HORIZONTAL_MARGIN = 32;
+  const width = SCREEN_WIDTH - 32;
+
+  const height = 320;
   const cornerRadius = 24;
   const cutoutRadius = 18;
   const cutoutY = height * 0.33;
@@ -34,12 +41,12 @@ const TicketWidget = ({ children }) => {
   ].join(' ');
 
   return (
-    <View style={[styles.container, { width: svgWidth, height: svgHeight }]}>
+    <View style={[styles.container, style, { width: svgWidth, height: svgHeight }]}>
       <Svg width={svgWidth} height={svgHeight}>
         <Path
           d={ticketPath}
           fill="rgba(255, 255, 255, 0.46)" 
-          transform={`translate(${shadowPadding + SHADOW_X_OFFSET}, ${shadowPadding + SHADOW_Y_OFFSET}) scale(1.05)`}
+          transform={`translate(${shadowPadding + SHADOW_X_OFFSET}, ${shadowPadding + SHADOW_Y_OFFSET}) scale(1.03)`}
         />
         <Path
           d={ticketPath}
@@ -84,11 +91,11 @@ const TicketWidget = ({ children }) => {
 const styles = StyleSheet.create({
   container: {
     alignSelf: 'center',
-    marginVertical: -6,
+    marginVertical: 12,
   },
   contentContainer: {
     position: 'absolute',
-    padding: 24,
+    padding: 14,
   },
 });
 

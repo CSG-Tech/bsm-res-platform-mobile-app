@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     bottom: 20,
   },
   headerTitle: {
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'Cairo-Medium',
     fontSize: 16,
     color: 'black',
   },
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   vesselName: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontSize: 16,
     color: 'black',
   },
@@ -182,17 +182,17 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   priceLabel: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Cairo-Regular',
     color: '#7e92b9',
     fontSize: 13,
   },
   priceValue: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     color: '#6291e8',
     fontSize: 16,
   },
   pricePax: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Cairo-Regular',
     color: 'black',
     fontSize: 14,
   },
@@ -238,17 +238,17 @@ const styles = StyleSheet.create({
     height: 16,
   },
   badgeText: {
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'Cairo-Medium',
     color: '#5c7096',
     fontSize: 13,
   },
   portName: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontSize: 16,
     color: 'black',
   },
   dateText: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Cairo-Regular',
     fontSize: 14,
     color: 'black',
   },
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     marginVertical: 33,
   },
   travelTimeText: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Cairo-Regular',
     color: '#5c7096',
     fontSize: 13,
   },
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   facilitiesTitle: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontSize: 16,
     color: 'black',
   },
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     height: 24,
   },
   facilityLabel: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Cairo-Regular',
     fontSize: 14,
     color: 'black',
   },
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bookButtonText: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontSize: 16,
     color: 'white',
   },

@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   loadingText: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Cairo-Regular',
     fontSize: 16,
     color: '#5c7095',
   },
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   errorText: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Cairo-Regular',
     fontSize: 16,
     color: '#e74c3c',
     textAlign: 'center',
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   backButtonText: {
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'Cairo-Medium',
     fontSize: 14,
     color: 'white',
   },
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
     bottom: 20,
   },
   headerTitle: {
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'Cairo-Medium',
     fontSize: 16,
     color: 'black',
   },
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   vesselName: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     padding: 10, 
     fontSize: 20,
     fontWeight: 'bold',
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   estPriceLabel: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Cairo-Regular',
     fontSize: 13,
     color: '#7e92b9',
   },
@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   badgeText: {
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'Cairo-Medium',
     fontSize: 13,
     color: '#5c7096',
   },
@@ -576,14 +576,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   portName: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontWeight: 'bold',
     fontSize: 16,
     color: 'black',
     textAlign: 'left', 
   },
   dateText: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Cairo-Regular',
     fontSize: 14,
     color: 'black',
     textAlign: 'left',
@@ -667,7 +667,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   continueButtonText: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontSize: 16,
     fontWeight: 'bold',
     color: 'white',

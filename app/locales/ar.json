@@ -18,7 +18,8 @@
     "select": "اختر",
     "search": "بحث",
     "missingInfo": "معلومات ناقصة",
-    "missingInfoMessage": "يرجى تحديد جميع الحقول قبل البحث."
+    "missingInfoMessage": "يرجى تحديد جميع الحقول قبل البحث.",
+    "close":"إغلاق"
   },
   "searchResults": {
     "title": "نتائج البحث",
@@ -30,7 +31,9 @@
     "departure": "المغادرة",
     "arrival": "الوصول",
     "gregorian": "ميلادي",
-    "hijri": "هجري"
+    "hijri": "هجري",
+    "select":"اختر",
+    "close":"إغلاق"
   },
   "passenger": {
     "modalTitle": "عدد الركاب",

@@ -17,7 +17,41 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import TicketWidget from '../../components/booking/TicketsWidget';
 import { getTripsByDateAndLine } from '../../axios/services/searchService';
+import HomeIcon from '../../assets/images/icons/Home.svg';
+import TicketsIcon from '../../assets/images/icons/Tickets.svg';
+import ManageIcon from '../../assets/images/icons/Manage.svg';
+import ShipIcon from '../../assets/images/icons/ship-icon.svg';
+import BackArrow from '../../assets/images/icons/back-arrow.svg';
+import CalendarIcon from '../../assets/images/icons/calendar2.svg';
+import FromIcon from '../../assets/images/icons/from-icon.svg';
+import ToIcon from '../../assets/images/icons/to-icon.svg';
+import FerryRoute from '../../assets/images/icons/ferry-route.svg';
+import { Modal } from 'react-native';
+import { Calendar } from 'react-native-calendars';
+import { LocaleConfig } from 'react-native-calendars';
 
+
+LocaleConfig.locales.ar = {
+  monthNames: [
+    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+  ],
+  monthNamesShort: [
+    'ينا', 'فبر', 'مار', 'أبر', 'ماي', 'يون',
+    'يول', 'أغس', 'سبت', 'أكت', 'نوف', 'ديس'
+  ],
+  dayNames: [
+    'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء',
+    'الخميس', 'الجمعة', 'السبت'
+  ],
+  dayNamesShort: ['أحد', 'اثن', 'ثلا', 'أرب', 'خم', 'جم', 'سب'],
+  today: 'اليوم',
+};
+const convertToArabicNumerals = (number) => {
+  if (number === undefined || number === null) return '';
+  const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  return String(number).replace(/[0-9]/g, (digit) => arabicNumerals[parseInt(digit)]);
+};
 const generateDateOptions = (selectedDateStr, languageCode, calendarType) => {
   const options = [];
   const selectedDate = new Date(selectedDateStr);
@@ -48,7 +82,6 @@ const generateDateOptions = (selectedDateStr, languageCode, calendarType) => {
       day = currentDate.toLocaleString(languageCode, { weekday: 'short' }).toUpperCase();
       date = currentDate.toLocaleString(languageCode, { day: 'numeric', month: 'short' });
     }
-
     options.push({
       day,
       date,
@@ -56,21 +89,24 @@ const generateDateOptions = (selectedDateStr, languageCode, calendarType) => {
       isSelected,
     });
   }
-
   return options;
 };
-
 const SearchResultsScreen = () => {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const searchParams = useLocalSearchParams();
   const isRTL = i18n.language === 'ar';
+  useEffect(() => {
+    LocaleConfig.defaultLocale = isRTL ? 'ar' : 'en';
+  }, [isRTL]);
+
   const flatListRef = useRef(null); 
-  const navigationItems = [
-    { icon: require('../../assets/images/icons/Home.png'), label: t('navigation.home'), isActive: true },
-    { icon: require('../../assets/images/icons/Tickets.png'), label: t('navigation.tickets'), isActive: false },
-    { icon: require('../../assets/images/icons/Manage.png'), label: t('navigation.manage'), isActive: false },
-  ];
+  const [isCalendarVisible, setIsCalendarVisible] = useState(false);
+   const navigationItems = [
+      { icon: () => <HomeIcon style={styles.navIcon} />, label: t('navigation.home'), isActive: true },
+      { icon: () => <TicketsIcon style={styles.navIcon} />, label: t('navigation.tickets'), isActive: false },
+      { icon: () => <ManageIcon style={styles.navIcon} />, label: t('navigation.manage'), isActive: false },
+    ];
 
   const fromPort = searchParams?.fromPort || "Unknown Port";
   const toPort = searchParams?.toPort || "Unknown Port";
@@ -164,7 +200,7 @@ const SearchResultsScreen = () => {
         departureTime: formatTime(vessel.tripStartDate),
         arrivalTime: formatTime(vessel.tripEndDate),
         duration: days > 0 ? `Est. ${days}d ${hours}h` : `Est. ${hours}h`,
-        shipIcon: require('../../assets/images/icons/ship-icon.png'),
+        icon: <ShipIcon width={35} height={35}/>,
         currencySymbol: vessel.currencySymbol,
         currencyPrint: i18n.language === 'ar' ? vessel.currencyArbPrint : vessel.currencyPrint,
       };
@@ -220,32 +256,23 @@ const SearchResultsScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
-
       <View style={styles.screenHeader}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Image
-            source={require('../../assets/images/icons/back-arrow.png')}
-            style={[styles.backArrowIcon, isRTL && { transform: [{ scaleX: -1 }] }]}
-          />
+          <BackArrow style={[styles.backArrowIcon, isRTL && { transform: [{ scaleX: -1 }] }]}/>
         </TouchableOpacity>
         <Text style={styles.screenTitle}>{t('searchResults.title')}</Text>
       </View>
-
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <View style={styles.blueSection}>
           <View style={styles.headerContainer}>
             <View style={styles.portInfoContainer}>
               <Text style={styles.portName} numberOfLines={2}>{fromPort}</Text>
-              <Image
-                source={require('../../assets/images/icons/ferry-route.png')}
-                style={[styles.ferryRouteIcon, isRTL && { transform: [{ scaleX: -1 }] }]}
-              />
-              <Text style={styles.portName} numberOfLines={2}>{toPort}</Text>
+              <FerryRoute style={[styles.ferryRouteIcon, isRTL && { transform: [{ scaleX: -1 }] }]}/>
+              <Text style={[styles.portName, {textAlign:'center'}]} numberOfLines={2}>{toPort}</Text>
             </View>
             <Text style={styles.passengerInfo}>{`${passengerText} • ${travelClass}`}</Text>
           </View>
 
-          {/* Calendar Type Toggle */}
           <View style={styles.calendarToggle}>
             <TouchableOpacity
               style={[
@@ -277,13 +304,9 @@ const SearchResultsScreen = () => {
               </Text>
             </TouchableOpacity>
           </View>
-
           <View style={styles.dateSelectionContainer}>
-            <TouchableOpacity style={styles.calendarIconContainer}>
-              <Image
-                source={require('../../assets/images/icons/calendar2.png')}
-                style={styles.calendarIcon}
-              />
+            <TouchableOpacity style={styles.calendarIconContainer} onPress={() => setIsCalendarVisible(true)}>
+              <CalendarIcon style={styles.calendarIcon}/>
             </TouchableOpacity>
             <FlatList
               ref={flatListRef}
@@ -310,58 +333,56 @@ const SearchResultsScreen = () => {
             />
           </View>
         </View>
-
         <View style={styles.whiteSection}>
           <View style={styles.vesselListContainer}>
             <Text style={styles.availableVesselsHeader}>{t('searchResults.availableVessels')}</Text>
-
             {isLoadingTrips ? (
               <ActivityIndicator size="large" color="#092863" />
             ) : vesselData.length > 0 ? (
               vesselData.map((vessel, index) => (
-                <TouchableOpacity key={index} onPress={() => handleTicketPress(vessel)}>
-                  <TicketWidget>
+                  <TicketWidget key={index}>
                     <View style={styles.vesselCardHeader}>
-                      <Text style={styles.vesselName}>{vessel.vesselName || 'N/A'}</Text>
-                      <View>
-                        <Text style={styles.estPriceLabel}>{t('searchResults.estPrice')}</Text>
-                        <Text>
-                          <Text style={styles.price}>{vessel.estimatedCost || '0.00'}</Text>
-                          <Text style={styles.paxText}>{vessel.currencyPrint ? ` ${vessel.currencyPrint}` : ''}</Text>
-                        </Text>
-                      </View>
+                      <Text style={styles.vesselName}>{vessel.vesselName || 'N/A'}</Text>                 
                     </View>
-
                     <View style={styles.separator} />
-
                     <View style={styles.vesselDetailsContainer}>
                       <View style={styles.portDetailColumn}>
                         <View style={styles.badge}>
-                          <Image source={require('../../assets/images/icons/from-icon.png')} style={styles.badgeIcon}/>
+                          <FromIcon style={styles.badgeIcon}/>
                           <Text style={styles.badgeText}>{t('searchResults.departure')}</Text>
                         </View>
                         <Text style={styles.portNameDetail}>{fromPort || 'N/A'}</Text>
                         <Text style={styles.dateTimeText}>{vessel.startDate || '--'}</Text>
                         <Text style={styles.dateTimeText}>{vessel.departureTime || '--:--'}</Text>
                       </View>
-
                       <View style={styles.routeColumn}>
-                        <Image source={vessel.shipIcon} style={styles.shipIcon} />
+                        {vessel.icon}
                         <Text style={styles.durationText}>{vessel.duration || 'N/A'}</Text>
                       </View>
-
                       <View style={styles.portDetailColumn}>
                         <View style={styles.badgeRight}>
-                          <Image source={require('../../assets/images/icons/to-icon.png')} style={styles.badgeIcon}/>
+                          <ToIcon style={styles.badgeIcon}/>
                           <Text style={styles.badgeText}>{t('searchResults.arrival')}</Text>
                         </View>
                         <Text style={styles.portNameDetailRight}>{toPort || 'N/A'}</Text>
                         <Text style={styles.dateTimeTextRight}>{vessel.endDate || '--'}</Text>
                         <Text style={styles.dateTimeTextRight}>{vessel.arrivalTime || '--:--'}</Text>
-                      </View>
+                      </View>                
                     </View>
+                    <View style={styles.separator} />
+                    <View style={styles.priceDetails}>
+                        <View >
+                          <Text style={styles.estPriceLabel}>{t('searchResults.estPrice')}</Text>
+                          <Text style={{ textAlign: isRTL ? 'right' : 'left' }}>
+                            <Text style={styles.price}>{vessel.estimatedCost || '0.00'}</Text>
+                            <Text style={styles.paxText}>{vessel.currencyPrint ? ` ${vessel.currencyPrint}` : ''}</Text>
+                          </Text>
+                        </View>
+                        <TouchableOpacity style={styles.selectButton} key={index} onPress={() => handleTicketPress(vessel)}>
+                          <Text style={styles.selectButtonText}>{t('searchResults.select')}</Text>
+                        </TouchableOpacity>
+                    </View> 
                   </TicketWidget>
-                </TouchableOpacity>
               ))
             ) : (
               <Text>No trips available for the selected date.</Text>
@@ -369,23 +390,48 @@ const SearchResultsScreen = () => {
           </View>
         </View>
       </ScrollView>
-
       <View style={styles.navigation}>
         {navigationItems.map((item) => (
-          <TouchableOpacity
-            key={item.label}
-            style={[styles.navItem, item.isActive && styles.navItemActive]}
-          >
-            <Image
-              source={item.icon}
-              style={[styles.navIcon, item.isActive && styles.navIconActive]}
-            />
-            <Text style={[styles.navLabel, item.isActive && styles.navLabelActive]}>
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+          <TouchableOpacity key={item.label} style={[styles.navItem, item.isActive && styles.navItemActive]}>
+              {typeof item.icon === 'function' ? (
+                  item.icon()) : (
+                    <Image source={item.icon} style={[styles.navIcon, item.isActive && styles.navIconActive]} />)}
+                    <Text style={[styles.navLabel, item.isActive && styles.navLabelActive]}>{item.label}</Text>
+          </TouchableOpacity>))}
       </View>
+      <Modal
+          visible={isCalendarVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setIsCalendarVisible(false)}>
+          <View style={styles.calendarOverlay}>
+            <View style={styles.calendarContainer}>
+              <Calendar
+                monthFormat={'MMMM yyyy'}
+                onDayPress={(day) => {
+                  setSelectedDate(new Date(day.dateString).toISOString());
+                  setIsCalendarVisible(false);
+                }}
+                markedDates={{
+                  [selectedDate.split('T')[0]]: {
+                    selected: true,
+                    selectedColor: '#6291E8',
+                  },
+                }}
+                theme={{
+                  todayTextColor: '#6291E8',
+                  arrowColor: '#6291E8',
+                  textDayFontFamily: 'Cairo-Regular',
+                  textMonthFontFamily: 'Cairo-Bold',
+                  textDayHeaderFontFamily: 'Cairo-Medium',
+                }}
+              />
+              <TouchableOpacity style={styles.closeButton} onPress={() => setIsCalendarVisible(false)}>
+                <Text style={styles.closeButtonText}>{t('searchResults.close')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -398,21 +444,29 @@ const getStyles = (isRTL) => StyleSheet.create({
   screenHeader: {
     flexDirection: isRTL ? 'row-reverse' : 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 24,
     paddingVertical: 20,
     backgroundColor: 'white',
     borderBottomColor: '#f0f0f0',
-    gap: 100,
+  },
+  backButton: {
+    width: 34,
+    height: 34,
   },
   backArrowIcon: {
     width: 34,
     height: 34,
   },
   screenTitle: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontSize: 18,
     color: 'black',
-    textAlign: isRTL ? 'right' : 'left',
+    textAlign: 'center',
+    flex: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
   },
   scrollViewContent: {
     flexGrow: 1,
@@ -422,8 +476,8 @@ const getStyles = (isRTL) => StyleSheet.create({
   },
   headerContainer: {
     paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 24,
+    paddingTop: 12,
+    paddingBottom: 16,
     gap: 24,
   },
   portInfoContainer: {
@@ -432,12 +486,12 @@ const getStyles = (isRTL) => StyleSheet.create({
     alignItems: 'center',
   },
   portName: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontWeight: 'bold',
     color: 'black',
     fontSize: 16,
     flex: 1,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   ferryRouteIcon: {
     width: 80,
@@ -446,11 +500,11 @@ const getStyles = (isRTL) => StyleSheet.create({
     marginHorizontal: 8,
   },
   passengerInfo: {
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'Cairo-Medium',
     fontWeight: '600',
     color: '#000000ff',
-    fontSize: 16,
-    paddingVertical: 2,
+    fontSize: 14,
+    paddingVertical: 0,
     textAlign: isRTL ? 'right' : 'left',
   },
   calendarToggle: {
@@ -473,7 +527,7 @@ const getStyles = (isRTL) => StyleSheet.create({
   },
   toggleText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'Cairo-Medium',
     fontWeight: '600',
     color: '#333',
   },
@@ -516,7 +570,7 @@ const getStyles = (isRTL) => StyleSheet.create({
     backgroundColor: '#BAD4FF',
   },
   dayText: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontWeight: 'bold',
     fontSize: 13,
     color: '#B6BDCF',
@@ -526,7 +580,7 @@ const getStyles = (isRTL) => StyleSheet.create({
     color: '#6291E8',
   },
   dateText: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontWeight: 'bold',
     fontSize: 16,
     color: 'black',
@@ -536,20 +590,19 @@ const getStyles = (isRTL) => StyleSheet.create({
   },
   whiteSection: {
     flex: 1,
-    backgroundColor: 'white',
     borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
+    borderTopRightRadius: 32, 
   },
   availableVesselsHeader: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 16,
     color: '#092863aa',
     alignSelf: isRTL ? 'flex-end' : 'flex-start',
-    marginBottom: 20,
+    marginBottom: 0,
   },
   vesselListContainer: {
-    paddingTop: 32,
+    paddingTop: 10,
     paddingHorizontal: 24,
     paddingBottom: 120,
   },
@@ -559,23 +612,28 @@ const getStyles = (isRTL) => StyleSheet.create({
     alignItems: 'center',
   },
   vesselName: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontWeight: 'bold',
     fontSize: 18,
     color: 'black',
     textAlign: isRTL ? 'right' : 'left',
   },
   estPriceLabel: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Cairo-Regular',
     fontSize: 15,
     color: '#7E92B9',
-    textAlign: isRTL ? 'left' : 'right',
+    textAlign: isRTL ? 'right' : 'left',
   },
   price: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Cairo-Bold',
     fontWeight: 'bold',
     color: '#6291E8',
     fontSize: 18,
+  },
+  priceDetails:{
+    flexDirection: isRTL ? 'row-reverse' : 'row',
+    justifyContent:'space-between',
+    alignItems: 'center'
   },
   paxText: {
     fontSize: 16,
@@ -714,10 +772,27 @@ const getStyles = (isRTL) => StyleSheet.create({
     color: '#878d9a',
   },
   navLabelActive: {
-    fontFamily: 'Inter-Bold',
-    fontWeight: 'bold',
-    color: '#092863',
+      fontFamily: 'Inter-Bold',
+      fontWeight: 'bold',
+      color: '#092863',
   },
+  calendarOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calendarContainer: {
+    width: '90%',
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 16,
+  },
+  selectButton: { marginTop: 10, paddingVertical: 14, paddingHorizontal: 30, backgroundColor: '#0A2351', borderRadius: 12, alignItems: 'center', flexDirection: isRTL ? 'row-reverse' : 'row', },
+  selectButtonText: { color: 'white', fontWeight: 'bold' },
+  closeButton: { marginTop: 10, paddingVertical: 14, backgroundColor: '#0A2351', borderRadius: 12, alignItems: 'center' },
+  closeButtonText: { color: 'white', fontWeight: 'bold' },
+
 });
 
 export default SearchResultsScreen;
