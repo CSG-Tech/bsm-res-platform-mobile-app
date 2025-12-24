@@ -422,7 +422,7 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors
 
       <View style={styles.formSection}>
         <Text style={styles.formSectionTitle}>{t("reservation.passportDetails")}</Text>
-        {/* passport number */}
+          {/* passport number */}
           <Controller
             control={control}
             name={`${passengerId}.passportNumber`}
@@ -438,7 +438,10 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors
                 label={t("reservation.passportNumber")}
                 placeholder={t("reservation.enter")}
                 value={value}
-                onChangeText={onChange}
+                onChangeText={(text) => {
+                  onChange(text); // Update form
+                  onInputChange("passportNumber", text); // Update state
+                }}
                 styles={styles}
               />
             )}
@@ -448,22 +451,25 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors
           )}
           {/* passport issuing date */}
           <Controller
-              control={control}
-              name={`${passengerId}.passportIssuingDate`}
-              rules={{
-                required: "Issuing date is required",
-                validate: (val) => new Date(val) <= new Date() || "Issuing date cannot be in the future"
-              }}
-              render={({ field: { onChange, value } }) => (
-                <FloatingLabelDatePicker
-                  label={t("reservation.passportIssuingDate")}
-                  placeholder="DD/MM/YYYY"
-                  value={value}
-                  onChangeDate={onChange}
-                  styles={styles}
-                />
-              )}
-            />
+            control={control}
+            name={`${passengerId}.passportIssuingDate`}
+            rules={{
+              required: "Issuing date is required",
+              validate: (val) => new Date(val) <= new Date() || "Issuing date cannot be in the future"
+            }}
+            render={({ field: { onChange, value } }) => (
+              <FloatingLabelDatePicker
+                label={t("reservation.passportIssuingDate")}
+                placeholder="DD/MM/YYYY"
+                value={value}
+                onChangeDate={(date) => {
+                  onChange(date); // Update form
+                  onInputChange("passportIssuingDate", date); // Update state
+                }}
+                styles={styles}
+              />
+            )}
+          />
             {errors[passengerId]?.passportIssuingDate && (
               <Text style={{ color: "red" }}>{errors[passengerId].passportIssuingDate.message}</Text>
           )}
@@ -483,7 +489,10 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors
                 label={t("reservation.passportExpirationDate")}
                 placeholder="DD/MM/YYYY"
                 value={value}
-                onChangeDate={onChange}
+                onChangeDate={(date) => {
+                  onChange(date); // Update form
+                  onInputChange("passportExpirationDate", date); // Update state
+                }}
                 styles={styles}
               />
             )}
@@ -574,28 +583,6 @@ const ReservationScreen = () => {
   });
   const currentPassengerDetails = allPassengersDetails.find((p) => p.id === selectedPassengerId);
 
-  const updatePassengerField = (id, field, value) => {
-    setAllPassengersDetails((prev) => 
-      prev.map((p) => {
-        if (p.id !== id) return p;
-        
-        if (field === 'degree' && value) {
-          const priceObj = availablePrices.find(
-            pr => pr.degreeCode === value.oracleDegreeCode
-          );
-          
-          return { 
-            ...p, 
-            degree: value,
-            price: priceObj?.convertedPrice || 0,
-            originalPrice: priceObj?.originalPrice || 0
-          };
-        }
-        
-        return { ...p, [field]: value };
-      })
-    );
-  };
 
   const handleAddPassenger = () => {
     const newId = allPassengersDetails.length > 0 ? Math.max(...allPassengersDetails.map((p) => p.id)) + 1 : 1;
@@ -633,7 +620,7 @@ const ReservationScreen = () => {
   }, 0);
   const isFormValid = allPassengersDetails.every(isPassengerValid);
 // validation for passport, expiry and start date
-const { control, handleSubmit, watch, formState: { errors } } = useForm({
+const { control, handleSubmit, watch, formState: { errors }, setValue } = useForm({
   defaultValues: allPassengersDetails.reduce((acc, p) => {
     acc[p.id] = { 
       passportNumber: p.passportNumber,
@@ -643,6 +630,35 @@ const { control, handleSubmit, watch, formState: { errors } } = useForm({
     return acc;
   }, {})
 });
+
+  useEffect(() => {
+    allPassengersDetails.forEach((p) => {
+        setValue(`${p.id}.passportNumber`, p.passportNumber || '');
+        setValue(`${p.id}.passportIssuingDate`, p.passportIssuingDate || '');
+        setValue(`${p.id}.passportExpirationDate`, p.passportExpirationDate || '');
+    });
+  }, [allPassengersDetails, setValue, selectedPassengerId]);
+
+  
+  const updatePassengerField = (id, field, value) => {
+    setAllPassengersDetails((prev) => 
+      prev.map((p) => {
+        if (p.id !== id) return p;
+        
+        if (field === 'degree' && value) {
+          return { 
+            ...p, 
+            degree: value,
+            price: availablePrices.find(pr => pr.degreeCode === value.oracleDegreeCode)?.convertedPrice || 0,
+            originalPrice: availablePrices.find(pr => pr.degreeCode === value.oracleDegreeCode)?.originalPrice || 0
+          };
+        }
+        
+        return { ...p, [field]: value };
+      })
+    );
+  };
+
 const hasErrors = Object.keys(errors).length > 0;
 
 const onSubmit = (data) => {
