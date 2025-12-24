@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -14,10 +16,13 @@ import {
   TouchableOpacity,
   View,
   useWindowDimensions,
+  Platform
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAllClasses, getFromPorts, getToPorts, getTripsByDateAndLine, } from '../../axios/services/searchService';
+import { saveDeviceToken } from '../../axios/services/userService';
+import { getOrCreateDeviceId } from '../../axios/storage/deviceStorage';
 import { PassengerSelectionModal } from './PassengerSelectionModal';
 import * as Updates from 'expo-updates';
 import NotificationIcon from '../../assets/images/icons/notifications.svg';
@@ -272,7 +277,54 @@ const BookingScreen = () => {
     }
   }, [classes, i18n.language]);
 
+  async function registerForPushNotificationsAsync() {
+    let token;
+    console.log('Registering for push notifications...', Constants.isDevice);
+    if (Constants.isDevice) {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== 'granted') {
+        alert('Failed to get push token for notifications!');
+        return;
+      }
+
+      token = (await Notifications.getExpoPushTokenAsync()).data;
+      console.log('Device token:', token);
+    } else {
+      alert('Must use a physical device for Push Notifications');
+    }
+
+    if (Platform.OS === 'android') {
+      Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+    }
+
+    return token;
+  }
+
   useEffect(() => {
+    const registerDevice = async () => {
+      try {
+        const deviceId = await getOrCreateDeviceId();
+        const deviceToken = await registerForPushNotificationsAsync();
+        if (deviceToken) {
+          await saveDeviceToken(deviceId, deviceToken);
+        }
+      } catch (error) {
+        console.error('Error registering device for notifications:', error);
+      }
+    };
+
     const loadFromPorts = async () => {
       try {
         setIsLoadingPorts(true);
@@ -289,6 +341,7 @@ const BookingScreen = () => {
         setIsLoadingPorts(false);
       }
     };
+
     const loadAllDegrees = async () => {
       try {
         setIsLoadingDegrees(true);
@@ -299,14 +352,16 @@ const BookingScreen = () => {
           setClasses([]);
         }
       } catch (error) {
-        console.error('Error fetching classs: ', error);
-        Alert.alert('Error', 'Could not load classs from the server.');
+        console.error('Error fetching classes:', error);
+        Alert.alert('Error', 'Could not load classes from the server.');
       } finally {
         setIsLoadingDegrees(false);
       }
-    }
+    };
+
     loadAllDegrees();
     loadFromPorts();
+    registerDevice();
   }, []);
 
   const totalPassengers = passengers.adult + passengers.child + passengers.infant;
@@ -394,6 +449,13 @@ const BookingScreen = () => {
     setPassengers(newCounts);
     setPassengerModalVisible(false);
   };
+
+  const handleNavigation = (route) => {
+    if (route) {
+      router.push(route);
+    }
+  };
+
 
   return (
     <View style={{ flex: 1, backgroundColor: '#EBF2FF' }}>

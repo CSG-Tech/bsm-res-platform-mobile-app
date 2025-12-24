@@ -1,9 +1,16 @@
+import { G } from "react-native-svg";
+
 export const ENDPOINTS = {
   AUTH: {
     GUEST: '/auth/guest',
     SIGNUP: '/auth/signup',
     LOGIN: '/auth/login',
     REFRESH: '/auth/refresh',
+  },
+  OTP: {
+    SEND: '/otp/send',
+    VERIFY: '/otp/verify',
+    RESEND: '/otp/resend',
   },
   DEGREES: {
     GET_BY_TRIP: (tripserial, degreeName) =>
@@ -32,6 +39,7 @@ export const ENDPOINTS = {
   USER: {
     GET_INFO: '/users/me',
     UPDATE: '/users/update',
+    DEVICE_TOKEN: '/users/save-device-token',
   },
   PAYMENTS: {
     INITIATE: '/payments/initiate',                  
@@ -40,11 +48,23 @@ export const ENDPOINTS = {
     CAPTURE: (reservationId) => `/payments/capture/${reservationId}`,
     GET_RESERVATION_STATUS: (reservationId) => `/payments/reservation/${reservationId}/status`,
     CANCEL_PROCESSING: (reservationId) => `/payments/reservation/${reservationId}/cancel-processing`,
+    CREATE_TOKEN: '/payments/token/create',
+    GET_PAYMENT_DATA: (token) => `/payments/token/${token}`,
   },
   RESERVATIONS: {
     CREATE: '/reservations',
     UPDATE_PASSENGERS: (reservationId) => `/reservations/${reservationId}/passengers`,
     EXPIRE: (reservationId) => `/reservations/${reservationId}/expire`,
     GET_DETAILS: (reservationId) => `/reservations/${reservationId}`,
+    FIND_RESERVATION: '/reservations/findReservation',
   },
+  CANCELLATION:{
+    GET_POLICIES: (tripSerial) => `/reservations/${tripSerial}/cancellation-policy`,
+    CANCEL_RESERVATION: '/reservations/cancel',
+    CANCEL_TICKETS: '/reservations/cancel-tickets',
+  },
+  UPGRADE: {
+    GET_OPTIONS: (ticketId) => `/reservations/tickets/${ticketId}/available-degrees`,
+    UPGRADE_TICKET: '/reservations/tickets/change-degree',
+  }
 };

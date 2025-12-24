@@ -22,7 +22,7 @@ import {
 } from 'react-native';
 import { getUserInfo, updateUser } from '../../axios/services/userService';
 import { createReservation, getReservationStatus } from '../../axios/services/ticketService';
-import { initiatePayment } from '../../axios/services/paymentService';
+import { createPaymentToken } from '../../axios/services/paymentService';
 import { useFocusEffect } from 'expo-router';
 
 
@@ -84,6 +84,7 @@ const PaymentScreen = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('creditcard'); // default
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false); 
 
   const countryButtonRef = useRef(null);
 
@@ -144,22 +145,24 @@ const PaymentScreen = () => {
   // Fetch user info on mount
   useEffect(() => {
     const fetchUserData = async () => {
+      if (initialDataLoaded) return; // ✅ Prevent re-fetch
+      
       try {
         const data = await getUserInfo();
         setEmail(data.email || '');
         setPhone(data.phone || '');
         setOriginalEmail(data.email || '');
         setOriginalPhone(data.phone || '');
+        setInitialDataLoaded(true); // ✅ Mark as loaded
       } catch (err) {
         console.error('Failed to fetch user info:', err);
-        // Continue anyway for guest users
       } finally {
         setLoading(false);
       }
     };
     
     fetchUserData();
-  }, []);
+  }, [initialDataLoaded]); // ✅ Add dependency
 
   useFocusEffect(
     useCallback(() => {
@@ -187,25 +190,25 @@ const PaymentScreen = () => {
     }
 
     setSubmitting(true);
-    const existingReservationId = params.reservationId;
-    if (existingReservationId) {
-      // Use existing reservation
-      const paymentData = await initiatePayment(existingReservationId, paymentMethod);
-      router.push({
-        pathname: '/payment-webview',
-        params: {
-          reservationId: existingReservationId,
-          paymentData: JSON.stringify(paymentData),
-        }
-      });
-      return;
-    }
-
+    
     try {
       // 1️⃣ Update user info if changed
       const hasChanges = email !== originalEmail || phone !== originalPhone;
       if (hasChanges) {
         await updateUser({ email, phone });
+      }
+
+      const existingReservationId = params.reservationId;
+      if (existingReservationId) {
+        // Use existing reservation - create token instead of payment data
+        const { token } = await createPaymentToken(existingReservationId, paymentMethod);
+        router.push({
+          pathname: '/payment-webview',
+          params: {
+            token, // Just pass the token
+          }
+        });
+        return;
       }
 
       // 2️⃣ Create reservation
@@ -232,18 +235,17 @@ const PaymentScreen = () => {
       const reservation = await createReservation(reservationPayload);
       console.log('Reservation created successfully:', reservation);
 
-      // 3️⃣ Initiate payment for the reservation
-      console.log('Initiating payment for reservation ID:', reservation.reservationId);
-      console.log('Selected payment method:', selectedPayment);
-      const paymentData = await initiatePayment(reservation.reservationId, paymentMethod);
-      console.log('Payment initiated:', paymentData);
+      // 3️⃣ Create payment token (not payment data)
+      console.log('Creating payment token for reservation ID:', reservation.reservationId);
+      console.log('Selected payment method:', paymentMethod);
+      const { token } = await createPaymentToken(reservation.reservationId, paymentMethod);
+      console.log('Payment token created:', token);
 
-      // 4️⃣ Navigate to WebView and pass payment data
+      // 4️⃣ Navigate to WebView with just the token
       router.push({
         pathname: '/payment-webview',
         params: {
-          reservationId: reservation.reservationId.toString(),
-          paymentData: JSON.stringify(paymentData), // WebView expects JSON string
+          token, // Only pass the token - no sensitive data
         }
       });
 
@@ -257,7 +259,6 @@ const PaymentScreen = () => {
       setSubmitting(false);
     }
   };
-
 
   return (
     <SafeAreaView style={styles.safeArea}>

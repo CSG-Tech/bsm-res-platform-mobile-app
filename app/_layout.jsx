@@ -14,7 +14,6 @@ i18n.on('languageChanged', (lng) => {
   setCalendarLanguage(lng);
 });
 
-
 export default function RootLayout() {
   const [isSessionReady, setSessionReady] = useState(false);
 
@@ -30,7 +29,6 @@ export default function RootLayout() {
           console.log('User session restored from storage.');
         }
       } catch (error) {
-
         console.error('Failed to initialize user session:', error);
       } finally {
         setSessionReady(true);
@@ -50,8 +48,8 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="search-results" options={{ headerShown: false }} />
       <Stack.Screen name="vessel-details" options={{ headerShown: false }} />
       <Stack.Screen name="reservation" options={{ headerShown: false }} />
@@ -60,10 +58,7 @@ export default function RootLayout() {
       <Stack.Screen name="eticket" options={{ headerShown: false }} />
       <Stack.Screen name="payment-webview" options={{ headerShown: false }} />
       <Stack.Screen name="payment-result" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="confirmation"
-        options={{ headerShown: false }} 
-      />
+      <Stack.Screen name="confirmation" options={{ headerShown: false }} />
       <Stack.Screen name="failed-booking" options={{ headerShown: false }} />
     </Stack>
   );
