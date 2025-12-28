@@ -560,7 +560,7 @@ const BookingScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
-      {!isPassengerModalVisible && (
+      {/* {!isPassengerModalVisible && (
         <View style={styles.navigation}>
           {navigationItems.map((item) => (
             <TouchableOpacity key={item.label} style={[styles.navItem, item.isActive && styles.navItemActive]}>
@@ -572,7 +572,7 @@ const BookingScreen = () => {
             </TouchableOpacity>
           ))}
         </View>
-      )}
+      )} */}
       <ListSelectionModal
         visible={isPortModalVisible}
         onClose={() => setPortModalVisible(false)}
