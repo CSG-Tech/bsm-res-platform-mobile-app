@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -15,10 +17,13 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Platform
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getAllClasses, getFromPorts, getToPorts, getTripsByDateAndLine, } from '../../axios/services/searchService';
+import { saveDeviceToken } from '../../axios/services/userService';
+import { getOrCreateDeviceId } from '../../axios/storage/deviceStorage';
 import { PassengerSelectionModal } from './PassengerSelectionModal';
 
 const CustomDay = ({ date, state, marking, onPress }) => {
@@ -198,9 +203,9 @@ const BookingScreen = () => {
     { id: '3', name: t('booking.classFirst') }
   ];
   const navigationItems = [
-    { icon: require('../../assets/images/icons/Home.png'), label: t('navigation.home'), isActive: true },
-    { icon: require('../../assets/images/icons/Tickets.png'), label: t('navigation.tickets'), isActive: false },
-    { icon: require('../../assets/images/icons/Manage.png'), label: t('navigation.manage'), isActive: false },
+    { icon: require('../../assets/images/icons/Home.png'), label: t('navigation.home'), isActive: true, route:'/index' },
+    { icon: require('../../assets/images/icons/Tickets.png'), label: t('navigation.tickets'), isActive: false, route:'/find-ticket' },
+    { icon: require('../../assets/images/icons/Manage.png'), label: t('navigation.manage'), isActive: false, route:'/manage' },
   ];
    
   const [tripType, setTripType] = useState('One-Way');
@@ -226,9 +231,56 @@ const BookingScreen = () => {
     }
 }, [classes, i18n.language]);
 
+  async function registerForPushNotificationsAsync() {
+    let token;
+    console.log('Registering for push notifications...', Constants.isDevice);
+    if (Constants.isDevice) {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== 'granted') {
+        alert('Failed to get push token for notifications!');
+        return;
+      }
+
+      token = (await Notifications.getExpoPushTokenAsync()).data;
+      console.log('Device token:', token);
+    } else {
+      alert('Must use a physical device for Push Notifications');
+    }
+
+    if (Platform.OS === 'android') {
+      Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+    }
+
+    return token;
+  }
+
   useEffect(() => {
+    const registerDevice = async () => {
+      try {
+        const deviceId = await getOrCreateDeviceId();
+        const deviceToken = await registerForPushNotificationsAsync();
+        if (deviceToken) {
+          await saveDeviceToken(deviceId, deviceToken);
+        }
+      } catch (error) {
+        console.error('Error registering device for notifications:', error);
+      }
+    };
+
    const loadFromPorts = async () => {
-  try {
+    try {
     setIsLoadingPorts(true);
     const data = await getFromPorts();
       if (data && !Array.isArray(data)) {
@@ -261,6 +313,7 @@ const BookingScreen = () => {
     }
   loadAllDegrees();
   loadFromPorts();
+  registerDevice();
 }, []);
 
   const totalPassengers = passengers.adult + passengers.child + passengers.infant;
@@ -352,6 +405,13 @@ const BookingScreen = () => {
     setPassengerModalVisible(false);
   };
 
+  const handleNavigation = (route) => {
+    if (route) {
+      router.push(route);
+    }
+  };
+
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
@@ -441,7 +501,10 @@ const BookingScreen = () => {
 
       <View style={styles.navigation}>
         {navigationItems.map((item) => (
-          <TouchableOpacity key={item.label} style={[styles.navItem, item.isActive && styles.navItemActive]}>
+          <TouchableOpacity key={item.label} 
+          style={[styles.navItem, item.isActive && styles.navItemActive]}
+          onPress={() => handleNavigation(item.route)}
+          >
             <Image source={item.icon} style={[styles.navIcon, item.isActive && styles.navIconActive]} />
             <Text style={[styles.navLabel, item.isActive && styles.navLabelActive]}>{item.label}</Text>
           </TouchableOpacity>

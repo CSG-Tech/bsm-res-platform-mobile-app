@@ -3,6 +3,7 @@ import { ArrowLeft, ChevronDown, ChevronUp, MoreHorizontal, Share2 } from 'lucid
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  ActivityIndicator,
   I18nManager,
   Image,
   LayoutAnimation,
@@ -18,6 +19,8 @@ import {
   UIManager,
   View
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { getReservation } from '../../axios/services/ticketService';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -62,17 +65,24 @@ const AccordionItem = ({ title }) => {
   );
 };
 
-const TicketCard = ({ t, passengerName }) => {
-  // --- Static values for demonstration ---
+const TicketCard = ({ t, i18n, passengerName, ticketData, summaryData }) => {
+  // Format date helper
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
+  // Build trip details from API data
   const tripDetailsData = {
-    tripNumber: "6",
-    tripDate: "16-11-2025",
-    vessel: "Amman",
-    nationality: "Sudanese",
-    degree: "Full Pullman +++",
-    route: "Jeddah - Suakin",
-    passportNumber: "P08069525",
-    reservationNumber: "1234567890123",
+    tripNumber: summaryData?.tripSerial || ticketData?.tripSerial || '',
+    tripDate: formatDate(summaryData?.startDate) || '',
+    vessel: summaryData?.vessel || '',
+    nationality: '', // Not provided in API, would need nationality lookup
+    degree: '', // Would need degree name lookup from degreeCode
+    route: summaryData ? `${i18n.language === 'ar' ? summaryData.fromPortArab : summaryData.fromPortEng} - ${i18n.language === 'ar' ? summaryData.toPortArab : summaryData.toPortEng}` : '',
+    passportNumber: ticketData?.passportNumber || '',
+    reservationNumber: ticketData?.oraclePrintTicketNo || ticketData?.oracleTicketNo || '',
   };
 
   return (
@@ -110,45 +120,67 @@ const TicketCard = ({ t, passengerName }) => {
 // --- Main Screen Component ---
 const ETicketScreen = () => {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const params = useLocalSearchParams();
   
   const [passengers, setPassengers] = useState([]);
   const [selectedPassengerIndex, setSelectedPassengerIndex] = useState(0);
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 24 });
+  const [loading, setLoading] = useState(true);
+  const [reservationData, setReservationData] = useState(null);
+  const [error, setError] = useState(null);
+  const [noResults, setNoResults] = useState(false);
   const menuButtonRef = useRef(null);
 
   useEffect(() => {
-    const loadPassengers = () => {
-      let parsedPassengers = [];
-      if (params.passengersData) {
-          try {
-              parsedPassengers = JSON.parse(params.passengersData);
-          } catch (e) {
-              parsedPassengers = [];
-          }
-      }
+    const fetchReservationData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        setNoResults(false);
 
-      if (parsedPassengers.length > 0) {
-          const formatted = parsedPassengers.map((p, i) => ({
-              id: p.id || i,
-              name: p.firstName ? `${p.firstName} ${p.lastName}` : `Passenger ${i + 1}`,
-              label: t('eticket.passenger', { num: i + 1 })
-          }));
-          setPassengers(formatted);
-      } else {
-          const count = params.passengerCount ? parseInt(params.passengerCount, 10) : 1;
-          const dummy = Array.from({ length: count }, (_, i) => ({
-              id: i,
-              name: `Passenger ${i + 1}`,
-              label: t('eticket.passenger', { num: i + 1 })
-          }));
-          setPassengers(dummy);
+        // Build search object from params
+        const searchObject = {
+          lastName: params.lastName || '',
+          passportNumber: params.passportNumber || '',
+          reservationId: params.reservationNumber || '',
+        };
+
+        console.log('Fetching reservation with:', searchObject);
+
+        const response = await getReservation(searchObject);
+
+        console.log('Reservation data received:', response);
+
+        // Check if response has no tickets
+        if (!response || !response.tickets || response.tickets.length === 0) {
+          setNoResults(true);
+          setPassengers([]);
+          return;
+        }
+
+        setReservationData(response);
+
+        // Map tickets to passengers
+        const formattedPassengers = response.tickets.map((ticket, index) => ({
+          id: ticket.id,
+          name: ticket.passengerName || `${ticket.passengerFirstName} ${ticket.passengerLastName}`,
+          label: t('eticket.passenger', { num: index + 1 }),
+          ticketData: ticket,
+        }));
+        setPassengers(formattedPassengers);
+      } catch (err) {
+        console.error('Error fetching reservation:', err);
+        setError(err.message || 'Failed to load reservation');
+        setPassengers([]);
+      } finally {
+        setLoading(false);
       }
     };
-    loadPassengers();
-  }, [params.passengersData, params.passengerCount, t]);
+
+    fetchReservationData();
+  }, [params.lastName, params.passportNumber, params.reservationNumber, t]);
 
   const handleMenuPress = () => {
     if (menuButtonRef.current) {
@@ -165,14 +197,68 @@ const ETicketScreen = () => {
 
   const handleDownload = () => {
     router.push({
-      pathname: '/Confirmation', // Navigate to the new confirmation screen
+      pathname: '/confirmation',
       params: {
-        ...params // Forward all current params to the next screen
+        ...params,
       }
     });
   };
 
-  const currentPassengerName = passengers[selectedPassengerIndex]?.name || "Ahmed Ibrahim";
+  const currentPassenger = passengers[selectedPassengerIndex];
+  const currentPassengerName = currentPassenger?.name || "Passenger";
+  const currentTicketData = currentPassenger?.ticketData;
+
+  // Show loading screen
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" backgroundColor="#edf3ff" />
+        <View style={[styles.container, styles.loadingContainer]}>
+          <ActivityIndicator size="large" color="#6291e8" />
+          <Text style={styles.loadingText}>{t('eticket.loading')}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show error screen
+  if (error) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" backgroundColor="#edf3ff" />
+        <View style={[styles.container, styles.loadingContainer]}>
+          <Text style={styles.errorText}>{t('eticket.error')}</Text>
+          <Text style={styles.errorMessage}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton} 
+            onPress={() => router.back()}
+          >
+            <Text style={styles.retryButtonText}>{t('eticket.goBack')}</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show no results screen
+  if (noResults) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" backgroundColor="#edf3ff" />
+        <View style={[styles.container, styles.loadingContainer]}>
+          <Ionicons name="search-outline" size={64} color="#6291e8" />
+          <Text style={styles.noResultsTitle}>{t('eticket.noResults')}</Text>
+          <Text style={styles.noResultsMessage}>{t('eticket.noResultsMessage')}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton} 
+            onPress={() => router.back()}
+          >
+            <Text style={styles.retryButtonText}>{t('eticket.searchAgain')}</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -204,7 +290,13 @@ const ETicketScreen = () => {
           </View>
 
           <View style={styles.section}>
-            <TicketCard t={t} passengerName={currentPassengerName} />
+            <TicketCard 
+              t={t} 
+              i18n={i18n}
+              passengerName={currentPassengerName} 
+              ticketData={currentTicketData}
+              summaryData={reservationData?.summary}
+            />
           </View>
 
           <View style={styles.instructionsSection}>
@@ -254,6 +346,58 @@ const ETicketScreen = () => {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#edf3ff' },
   container: { flex: 1 },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    color: '#666',
+    marginTop: 16,
+  },
+  errorText: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 18,
+    color: '#ff4d4f',
+    marginBottom: 8,
+  },
+  errorMessage: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    paddingHorizontal: 32,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#06193b',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 16,
+    color: 'white',
+  },
+  noResultsTitle: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 20,
+    color: '#333',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  noResultsMessage: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    paddingHorizontal: 32,
+    marginBottom: 24,
+    lineHeight: 22,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

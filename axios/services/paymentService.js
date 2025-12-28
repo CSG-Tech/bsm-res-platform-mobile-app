@@ -1,5 +1,22 @@
+// payment service
 import api from './api/axiosConfig';
 import { ENDPOINTS } from './api/endpoints';
+
+// 🔸 Create Payment Token
+export const createPaymentToken = async (reservationId, paymentMethod = 'creditcard') => {
+  console.log('➡️ createPaymentToken URL:', ENDPOINTS.PAYMENTS.CREATE_TOKEN);
+  const res = await api.post(ENDPOINTS.PAYMENTS.CREATE_TOKEN, { reservationId, paymentMethod });
+  console.log('Create Payment Token Response:', res.data);
+  return res.data;
+};
+
+// 🔸 Get Payment Data by Token
+export const getPaymentDataByToken = async (token) => {
+  console.log('➡️ getPaymentDataByToken URL:', ENDPOINTS.PAYMENTS.GET_PAYMENT_DATA(token));
+  const res = await api.get(ENDPOINTS.PAYMENTS.GET_PAYMENT_DATA(token));
+  console.log('Get Payment Data Response:', res.data);
+  return res.data;
+};
 
 // 🔸 Initiate Payment
 export const initiatePayment = async (reservationId, paymentMethod = 'creditcard') => {

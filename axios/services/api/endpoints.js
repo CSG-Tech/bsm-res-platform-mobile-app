@@ -32,6 +32,7 @@ export const ENDPOINTS = {
   USER: {
     GET_INFO: '/users/me',
     UPDATE: '/users/update',
+    DEVICE_TOKEN: '/users/save-device-token',
   },
   PAYMENTS: {
     INITIATE: '/payments/initiate',                  
@@ -40,11 +41,14 @@ export const ENDPOINTS = {
     CAPTURE: (reservationId) => `/payments/capture/${reservationId}`,
     GET_RESERVATION_STATUS: (reservationId) => `/payments/reservation/${reservationId}/status`,
     CANCEL_PROCESSING: (reservationId) => `/payments/reservation/${reservationId}/cancel-processing`,
+    CREATE_TOKEN: '/payments/token/create',
+    GET_PAYMENT_DATA: (token) => `/payments/token/${token}`,
   },
   RESERVATIONS: {
     CREATE: '/reservations',
     UPDATE_PASSENGERS: (reservationId) => `/reservations/${reservationId}/passengers`,
     EXPIRE: (reservationId) => `/reservations/${reservationId}/expire`,
     GET_DETAILS: (reservationId) => `/reservations/${reservationId}`,
+    FIND_RESERVATION: '/reservations/findReservation',
   },
 };

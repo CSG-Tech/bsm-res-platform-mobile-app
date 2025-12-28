@@ -149,7 +149,16 @@
     "resumeOrCancelMessage": "هل ترغب في متابعة الدفع أم إلغاؤه؟",
     "resumeOrCancel": "إجراء الدفع"
   },
-  
+  "findTickets": {
+    "title": "ابحث عن تذاكرك",
+    "lastName": "الاسم الأخير",
+    "passportNumber": "رقم جواز السفر",
+    "reservationNumber": "رقم الحجز",
+    "enterPlaceholder": "أدخل",
+    "search": "بحث",
+    "validationError": "خطأ في التحقق",
+    "validationErrorMessage": "يرجى إدخال حقل واحد على الأقل للبحث"
+  },
    "eticket": {
     "headerTitle": "التذكرة الإلكترونية",
     "passenger": "راكب {{num}}",
