@@ -152,7 +152,16 @@
     "resumeOrCancelMessage": "هل ترغب في متابعة الدفع أم إلغاؤه؟",
     "resumeOrCancel": "إجراء الدفع"
   },
-  
+  "findTickets": {
+    "title": "ابحث عن تذاكرك",
+    "lastName": "الاسم الأخير",
+    "passportNumber": "رقم جواز السفر",
+    "reservationNumber": "رقم الحجز",
+    "enterPlaceholder": "أدخل",
+    "search": "بحث",
+    "validationError": "خطأ في التحقق",
+    "validationErrorMessage": "يرجى إدخال حقل واحد على الأقل للبحث"
+  },
    "eticket": {
     "headerTitle": "التذكرة الإلكترونية",
     "passenger": "راكب {{num}}",
@@ -175,7 +184,29 @@
     "viewTransaction": "عرض المعاملة",
     "changeDegree": "تغيير الدرجة",
     "reschedule": "إعادة جدولة",
-    "cancelBooking": "إلغاء الحجز"
+    "cancelBooking": "إلغاء الحجز",
+    "cancelTickets": "إلغاء التذاكر",
+    "ticketNumber": "رقم التذكرة",
+    "cancelReservation": "إلغاء الحجز",
+    "cancelWarning": "سيؤدي إلغاء الحجز إلى معالجة استرداد كامل للمبلغ وفقًا لسياسة الإلغاء الخاصة بنا. لا يمكن التراجع عن هذا الإجراء.",
+    "cancelTicketsWarning": "سيتم إلغاء التذاكر المحددة واسترداد قيمتها، بينما ستبقى التذاكر المتبقية سارية. بعد إلغاء أي تذكرة، لن تتمكن من إلغاء أي تذاكر أو حجوزات أخرى.",
+    "cancellationPolicy": "سياسة الإلغاء",
+    "provideReason": "يرجى توضيح سبب الإلغاء",
+    "selectTicketsToCancel": "اختر التذاكر المراد إلغاؤها",
+    "enterReason": "أدخل السبب...",
+    "refundAmount": "مبلغ الاسترداد",
+    "confirmCancellation": "تأكيد الإلغاء",
+    "cancelSelected": "إلغاء المحدد",
+    "reasonRequired": "يرجى إدخال سبب الإلغاء",
+    "selectTickets": "يرجى اختيار تذكرة واحدة على الأقل",
+    "cannotCancelRefunded": "لا يمكن إلغاء حجز أو تذكرة مرتبطة بحجز تم استرداد قيمته مسبقًا",
+    "reservationCancelledSuccess": "تم إلغاء الحجز بنجاح",
+    "ticketsCancelledSuccess": "تم إلغاء التذاكر بنجاح",
+    "cancellationFailed": "فشل الإلغاء",
+    "fullAmount": "المبلغ الكامل",
+    "refundPercentage": "نسبة الاسترداد",
+    "cancellationFee": "رسوم الإلغاء",
+    "cannotCancelTitle": "لا يمكن الإلغاء"
   },
   "paymentResult": {
     "successTitle": "تم الدفع بنجاح!",

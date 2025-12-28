@@ -3,6 +3,8 @@ import { ArrowLeft, ChevronDown, ChevronUp, MoreHorizontal, Share2 } from 'lucid
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  ActivityIndicator,
+  Alert,
   I18nManager,
   Image,
   LayoutAnimation,
@@ -18,6 +20,15 @@ import {
   UIManager,
   View
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { getReservation } from '../../axios/services/ticketService';
+import Barcode from '@kichiyaki/react-native-barcode-generator';
+import OTPVerificationModal from '../otp/OTPVerificationModal';
+import { cancelReservation, cancelTickets, getCancellationPolicies } from '../../axios/services/cancellationService';
+import CancelReservationModal from '../modals/CancelReservationsModal';
+import CancelTicketsModal from '../modals/CancelTicketsModal';
+import Toast from 'react-native-toast-message';
+
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -25,7 +36,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 // --- Dynamic Data based on translation keys ---
 const tripDetailsKeys = [
-  "tripNumber", "tripDate", "vessel", "nationality",
+  "tripNumber", "ticketNumber", "tripDate", "vessel", "nationality",
   "degree", "route", "passportNumber", "reservationNumber"
 ];
 
@@ -62,18 +73,27 @@ const AccordionItem = ({ title }) => {
   );
 };
 
-const TicketCard = ({ t, passengerName }) => {
-  // --- Static values for demonstration ---
-  const tripDetailsData = {
-    tripNumber: "6",
-    tripDate: "16-11-2025",
-    vessel: "Amman",
-    nationality: "Sudanese",
-    degree: "Full Pullman +++",
-    route: "Jeddah - Suakin",
-    passportNumber: "P08069525",
-    reservationNumber: "1234567890123",
+const TicketCard = ({ t, i18n, passengerName, ticketData, summaryData }) => {
+  // Format date helper
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
+
+  // Build trip details from API data
+  const tripDetailsData = {
+    tripNumber: summaryData?.tripSerial || ticketData?.tripSerial || '',
+    tripDate: formatDate(summaryData?.startDate) || '',
+    vessel: summaryData?.vessel || '',
+    nationality: i18n.language === 'ar' ? ticketData?.nationality?.natArbName : ticketData?.nationality?.natName, // Not provided in API, would need nationality lookup
+    degree: i18n.language === 'ar' ? ticketData?.degree?.degreeArabName : ticketData?.degree?.degreeEnglishName, // Would need degree name lookup from degreeCode
+    route: summaryData ? `${i18n.language === 'ar' ? summaryData.fromPortArab : summaryData.fromPortEng} - ${i18n.language === 'ar' ? summaryData.toPortArab : summaryData.toPortEng}` : '',
+    passportNumber: ticketData?.passportNumber || '',
+    ticketNumber: ticketData?.oracleTicketNo || '',
+    reservationNumber: ticketData?.oracleAgentResNo || ticketData?.oracleTicketNo || '',
+  };
+console.log('Barcode value:', ticketData?.oraclePrintTicketNo);
 
   return (
     <View style={styles.cardContainer}>
@@ -97,7 +117,9 @@ const TicketCard = ({ t, passengerName }) => {
 
         <View style={styles.barcodeContainer}>
           <Image source={require('../../assets/images/linedot.png')} style={styles.separatorLine} resizeMode="stretch" />
-          <Image source={require('../../assets/images/barcode.png')} style={styles.barcodeImage} resizeMode="contain" />
+          {ticketData?.oraclePrintTicketNo && String(ticketData.oraclePrintTicketNo).length > 0 && (
+            <Barcode value={String(ticketData.oraclePrintTicketNo)} format="CODE128" />
+          )}
         </View>
       </View>
       <View style={[styles.ticketNotch, I18nManager.isRTL ? styles.notchRight : styles.notchLeft]} />
@@ -110,45 +132,78 @@ const TicketCard = ({ t, passengerName }) => {
 // --- Main Screen Component ---
 const ETicketScreen = () => {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const params = useLocalSearchParams();
   
   const [passengers, setPassengers] = useState([]);
   const [selectedPassengerIndex, setSelectedPassengerIndex] = useState(0);
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 24 });
+  const [loading, setLoading] = useState(true);
+  const [reservationData, setReservationData] = useState(null);
+  const [error, setError] = useState(null);
+  const [noResults, setNoResults] = useState(false);
   const menuButtonRef = useRef(null);
+  const [showOTP, setShowOTP] = useState(false);
+  const [showCancelReservationModal, setShowCancelReservationModal] = useState(false);
+  const [showCancelTicketsModal, setShowCancelTicketsModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [selectedTicketIds, setSelectedTicketIds] = useState([]);
+  const [cancelling, setCancelling] = useState(false);
+
 
   useEffect(() => {
-    const loadPassengers = () => {
-      let parsedPassengers = [];
-      if (params.passengersData) {
-          try {
-              parsedPassengers = JSON.parse(params.passengersData);
-          } catch (e) {
-              parsedPassengers = [];
-          }
-      }
+    const fetchReservationData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        setNoResults(false);
 
-      if (parsedPassengers.length > 0) {
-          const formatted = parsedPassengers.map((p, i) => ({
-              id: p.id || i,
-              name: p.firstName ? `${p.firstName} ${p.lastName}` : `Passenger ${i + 1}`,
-              label: t('eticket.passenger', { num: i + 1 })
-          }));
-          setPassengers(formatted);
-      } else {
-          const count = params.passengerCount ? parseInt(params.passengerCount, 10) : 1;
-          const dummy = Array.from({ length: count }, (_, i) => ({
-              id: i,
-              name: `Passenger ${i + 1}`,
-              label: t('eticket.passenger', { num: i + 1 })
-          }));
-          setPassengers(dummy);
+        // Build search object from params
+        const searchObject = {
+          lastName: params.lastName || '',
+          passportNumber: params.passportNumber || '',
+          reservationId: params.reservationNumber || '',
+        };
+
+        console.log('Fetching reservation with:', searchObject);
+
+        const response = await getReservation(searchObject);
+
+        console.log('Reservation data received:', response);
+
+        // Check if response has no tickets
+        if (!response || !response.tickets || response.tickets.length === 0) {
+          setNoResults(true);
+          setPassengers([]);
+          return;
+        }
+
+        setReservationData(response);
+
+        // Map tickets to passengers
+        const formattedPassengers = response.tickets.map((ticket, index) => ({
+          id: ticket.id,
+          name: ticket.passengerName || `${ticket.passengerFirstName} ${ticket.passengerLastName}`,
+          label: t('eticket.passenger', { num: index + 1 }),
+          ticketData: ticket,
+        }));
+        setPassengers(formattedPassengers);
+      } catch (err) {
+        console.error('Error fetching reservation:', err);
+        if(err.response && err.response.status === 404) {
+          setNoResults(true);
+        } else {
+          setError(err.message || 'Failed to load reservation');
+        }
+        setPassengers([]);
+      } finally {
+        setLoading(false);
       }
     };
-    loadPassengers();
-  }, [params.passengersData, params.passengerCount, t]);
+
+    fetchReservationData();
+  }, [params.lastName, params.passportNumber, params.reservationNumber, t]);
 
   const handleMenuPress = () => {
     if (menuButtonRef.current) {
@@ -165,14 +220,165 @@ const ETicketScreen = () => {
 
   const handleDownload = () => {
     router.push({
-      pathname: '/Confirmation', // Navigate to the new confirmation screen
+      pathname: '/confirmation',
       params: {
-        ...params // Forward all current params to the next screen
+        ...params,
       }
     });
   };
 
-  const currentPassengerName = passengers[selectedPassengerIndex]?.name || "Ahmed Ibrahim";
+  const handleCancelReservationConfirm = async (reason) => {
+    if (!reason.trim()) {
+      Toast.show({ type: 'error', text1: t('eticket.reasonRequired') });
+      return;
+    }
+    
+    setCancelling(true);
+    try {
+      await cancelReservation({
+        reservationId: Number(reservationData?.summary?.id || params.reservationNumber),
+        reason: reason,
+        refundType: 'full'
+      });
+      
+      Toast.show({ type: 'success', text1: t('eticket.reservationCancelledSuccess') });
+      setShowCancelReservationModal(false);
+      router.back();
+    } catch (error) {
+      console.error('Cancel reservation error:', error);
+      console.error('Error response:', error.response?.data);
+      
+      // Handle 400 error specifically
+      if (error.response?.status === 400) {
+        Alert.alert(
+          t('eticket.cannotCancelTitle'),
+          t('eticket.cannotCancelRefunded'),
+          [
+            {
+              text: t('common.ok'),
+              onPress: () => setShowCancelReservationModal(false)
+            }
+          ]
+        );
+      } else {
+        const errorMessage = error.response?.data?.message 
+          || error.response?.data?.error
+          || error.message 
+          || t('eticket.cancellationFailed');
+        
+        Toast.show({ 
+          type: 'error', 
+          text1: errorMessage 
+        });
+      }
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleCancelTicketsConfirm = async (ticketIds, reason) => {
+    if (ticketIds.length === 0) {
+      Toast.show({ type: 'error', text1: t('eticket.selectTickets') });
+      return;
+    }
+    if (!reason.trim()) {
+      Toast.show({ type: 'error', text1: t('eticket.reasonRequired') });
+      return;
+    }
+    
+    setCancelling(true);
+    try {
+      await cancelTickets({ ticketIds, reason });
+      
+      Toast.show({ type: 'success', text1: t('eticket.ticketsCancelledSuccess') });
+      setShowCancelTicketsModal(false);
+      router.back();
+    } catch (error) {
+      console.error('Cancel tickets error:', error);
+      console.error('Error response:', error.response?.data);
+      
+      // Handle 400 error specifically
+      if (error.response?.status === 400) {
+        Alert.alert(
+          t('eticket.cannotCancelTitle'),
+          t('eticket.cannotCancelRefunded'),
+          [
+            {
+              text: t('common.ok'),
+              onPress: () => setShowCancelTicketsModal(false)
+            }
+          ]
+        );
+      } else {
+        const errorMessage = error.response?.data?.message 
+          || error.response?.data?.error
+          || error.message 
+          || t('eticket.cancellationFailed');
+        
+        Toast.show({ 
+          type: 'error', 
+          text1: errorMessage 
+        });
+      }
+    } finally {
+      setCancelling(false);
+    }
+  };
+  const currentPassenger = passengers[selectedPassengerIndex];
+  const currentPassengerName = currentPassenger?.name || "Passenger";
+  const currentTicketData = currentPassenger?.ticketData;
+
+  // Show loading screen
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" backgroundColor="#edf3ff" />
+        <View style={[styles.container, styles.loadingContainer]}>
+          <ActivityIndicator size="large" color="#6291e8" />
+          <Text style={styles.loadingText}>{t('eticket.loading')}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show error screen
+  if (error) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" backgroundColor="#edf3ff" />
+        <View style={[styles.container, styles.loadingContainer]}>
+          <Text style={styles.errorText}>{t('eticket.error')}</Text>
+          <Text style={styles.errorMessage}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton} 
+            onPress={() => router.back()}
+          >
+            <Text style={styles.retryButtonText}>{t('eticket.goBack')}</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show no results screen
+  if (noResults) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" backgroundColor="#edf3ff" />
+        <View style={[styles.container, styles.loadingContainer]}>
+          <Ionicons name="search-outline" size={64} color="#6291e8" />
+          <Text style={styles.noResultsTitle}>{t('eticket.noResults')}</Text>
+          <Text style={styles.noResultsMessage}>{t('eticket.noResultsMessage')}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton} 
+            onPress={() => router.back()}
+          >
+            <Text style={styles.retryButtonText}>{t('eticket.searchAgain')}</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -197,14 +403,40 @@ const ETicketScreen = () => {
                   style={[styles.tabButton, index === selectedPassengerIndex ? styles.tabButtonActive : styles.tabButtonInactive]}
                   onPress={() => setSelectedPassengerIndex(index)}
                 >
-                  <Text style={styles.tabText}>{p.label}</Text>
+                  <Text style={styles.tabText}>{p.name}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
           </View>
 
           <View style={styles.section}>
-            <TicketCard t={t} passengerName={currentPassengerName} />
+            <TicketCard 
+              t={t} 
+              i18n={i18n}
+              passengerName={currentPassengerName} 
+              ticketData={currentTicketData}
+              summaryData={reservationData?.summary}
+            />
+          </View>
+
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity style={styles.actionButtonPrimary}>
+              <Ionicons name="calendar-outline" size={20} color="#3B82F6" />
+              <Text style={styles.actionButtonTextPrimary}>{t('eticket.reschedule')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionButtonPrimary}>
+              <Ionicons name="swap-horizontal-outline" size={20} color="#3B82F6" />
+              <Text style={styles.actionButtonTextPrimary}>{t('eticket.changeDegree')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionButtonDanger}
+              onPress={() => setShowOTP(true)}
+            >
+              <Ionicons name="close-circle-outline" size={20} color="#EF4444" />
+              <Text style={styles.actionButtonTextDanger}>{t('eticket.cancelBooking')}</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.instructionsSection}>
@@ -240,13 +472,44 @@ const ETicketScreen = () => {
               <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                 <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.reschedule')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => setMenuVisible(false)}>
-                <Text style={[styles.menuText, styles.cancelText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.cancelBooking')}</Text>
+              <TouchableOpacity style={styles.menuItem} onPress={() => {
+                setMenuVisible(false); 
+                setShowCancelTicketsModal(true);
+              }}>
+                <Text style={[styles.menuText, styles.cancelText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
+                  {t('eticket.cancelTickets')}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+      <OTPVerificationModal
+        visible={showOTP}
+        onClose={() => setShowOTP(false)}
+        onSuccess={() => {
+          console.log("OTP Success!");
+          setShowOTP(false);
+          setShowCancelReservationModal(true);
+        }}
+        phoneNumber="+201234567890"
+      />
+      <CancelReservationModal
+        visible={showCancelReservationModal}
+        onClose={() => setShowCancelReservationModal(false)}
+        onConfirm={handleCancelReservationConfirm}
+        loading={cancelling}
+        reservationId={reservationData?.summary?.id || params.reservationNumber}
+      />
+
+      <CancelTicketsModal
+        visible={showCancelTicketsModal}
+        onClose={() => setShowCancelTicketsModal(false)}
+        passengers={passengers}
+        onConfirm={handleCancelTicketsConfirm}
+        loading={cancelling}
+        reservationId={reservationData?.summary?.id || params.reservationNumber}
+      />
     </SafeAreaView>
   );
 };
@@ -254,6 +517,58 @@ const ETicketScreen = () => {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#edf3ff' },
   container: { flex: 1 },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    color: '#666',
+    marginTop: 16,
+  },
+  errorText: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 18,
+    color: '#ff4d4f',
+    marginBottom: 8,
+  },
+  errorMessage: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    paddingHorizontal: 32,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#06193b',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 16,
+    color: 'white',
+  },
+  noResultsTitle: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 20,
+    color: '#333',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  noResultsMessage: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    paddingHorizontal: 32,
+    marginBottom: 24,
+    lineHeight: 22,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -400,6 +715,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   downloadText: { fontFamily: 'Inter-Bold', fontSize: 16, color: 'white' },
+  actionButtonsContainer: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+    gap: 12,
+  },
+  actionButtonPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1.5,
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    paddingVertical: 16,
+    gap: 8,
+  },
+  actionButtonTextPrimary: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 15,
+    color: '#3B82F6',
+  },
+  actionButtonDanger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
+    borderRadius: 12,
+    paddingVertical: 16,
+    gap: 8,
+  },
+  actionButtonTextDanger: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 15,
+    color: '#EF4444',
+  },
+
 });
 
 export default ETicketScreen;

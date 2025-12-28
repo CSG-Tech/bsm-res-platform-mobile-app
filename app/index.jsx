@@ -6,6 +6,6 @@ import PaymentScreen from '../components/payment/PaymentScreen';
 
 export default function HomeScreen() {
   // return <ReservationScreen/>
-  return <PaymentScreen/>
-  // return <BookingScreen />;
+  // return <PaymentScreen/>
+  return <BookingScreen />;
 }
