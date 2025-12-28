@@ -24,6 +24,13 @@ import { getUserInfo, updateUser } from '../../axios/services/userService';
 import { createReservation, getReservationStatus } from '../../axios/services/ticketService';
 import { createPaymentToken } from '../../axios/services/paymentService';
 import { useFocusEffect } from 'expo-router';
+import VisaLogo from '../../assets/images/paymentImages/visa_logo.svg';
+import MasterCardLogo from '../../assets/images/paymentImages/masterCard.svg';
+import AmericanExpressLogo from '../../assets/images/paymentImages/american_express.svg';
+import MadaLogo from '../../assets/images/paymentImages/mada.svg';
+import StcBankLogo from '../../assets/images/paymentImages/stc_bank.svg';
+import ApplePayLogo from '../../assets/images/paymentImages/apple_pay.svg';
+import SamsungPayLogo from '../../assets/images/paymentImages/samsung_pay.svg';
 
 
 // --- Static Data: Countries ---
@@ -259,6 +266,8 @@ const PaymentScreen = () => {
       setSubmitting(false);
     }
   };
+const [payment, setPayment] = useState('visa');
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -323,20 +332,78 @@ const PaymentScreen = () => {
               </View>
             </View>
           </View>
-
           {/* Payment Method Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('payment.paymentMethod')}</Text>
-            
+            <Text style={styles.sectionTitle}>{t('payment.paymentMethod')}</Text>        
             {/* Payment Logos Banner */}
             <View style={styles.paymentLogosContainer}>
-               <Image 
-                source={require('../../assets/images/payment-methods.png')} 
-                style={styles.paymentLogosImage}
-                resizeMode="contain"
-              />
-            </View>
-
+                <View style={styles.paymentMethodRow}>
+                  {/* Visa */}
+                  <TouchableOpacity
+                      style={[
+                        styles.paymentCard, payment === 'Visa' && styles.paymentCardSelected]}
+                      onPress={() => setPayment('Visa')}
+                      activeOpacity={0.8} >
+                    <VisaLogo width={27} height={10} />
+                    {payment === 'Visa' && <View style={styles.selectedDot}/>}
+                  </TouchableOpacity>
+                  {/* MasterCard */}
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentCard, payment === 'MasterCard' && styles.paymentCardSelected]}
+                      onPress={() => setPayment('MasterCard')}
+                      activeOpacity={0.8}>
+                    <MasterCardLogo width={33} height={25} />
+                    {payment === 'MasterCard' && <View style={styles.selectedDot}/>}
+                  </TouchableOpacity>
+                  {/* AmericanExpress */}
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentCard, payment === 'AmericanExpress' && styles.paymentCardSelected]}
+                      onPress={() => setPayment('AmericanExpress')}
+                      activeOpacity={0.8}>
+                    <AmericanExpressLogo width={25} height={25} />
+                    {payment === 'AmericanExpress' && <View style={styles.selectedDot}/>}
+                  </TouchableOpacity>
+                  {/* Mada */}
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentCard, payment === 'Mada' && styles.paymentCardSelected]}
+                      onPress={() => setPayment('Mada')}
+                      activeOpacity={0.8}>
+                    <MadaLogo width={37} height={15} />
+                    {payment === 'Mada' && <View style={styles.selectedDot}/>}
+                  </TouchableOpacity>
+                  {/* StcBank */}
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentCard, payment === 'StcBank' && styles.paymentCardSelected]}
+                      onPress={() => setPayment('StcBank')}
+                      activeOpacity={0.8}>
+                    <StcBankLogo width={36} height={12} />
+                    {payment === 'StcBank' && <View style={styles.selectedDot}/>}
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.paymentMethodRow}>
+                  {/* ApplePay */}
+                  <TouchableOpacity
+                      style={[
+                        styles.paymentCard, payment === 'ApplePay' && styles.paymentCardSelected]}
+                      onPress={() => setPayment('ApplePay')}
+                      activeOpacity={0.8} >
+                    <ApplePayLogo width={30} height={40} />
+                    {payment === 'ApplePay' && <View style={styles.selectedDot}/>}
+                  </TouchableOpacity>
+                  {/* SamsungPay */}
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentCard, payment === 'SamsungPay' && styles.paymentCardSelected]}
+                      onPress={() => setPayment('SamsungPay')}
+                      activeOpacity={0.8}>
+                    <SamsungPayLogo width={35} height={35} />
+                    {payment === 'SamsungPay' && <View style={styles.selectedDot}/>}
+                  </TouchableOpacity>
+                </View>
             {/* Radio Options */}
             <View style={styles.radioGroup}>
               <CustomRadioButton 
@@ -352,9 +419,9 @@ const PaymentScreen = () => {
               />
             </View>
           </View>
-
+          </View>
+          
         </ScrollView>
-
         {/* Footer */}
         <View style={styles.footer}>
           <View style={styles.totalContainer}>
@@ -554,12 +621,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#4e4e4e',
   },
-
-  paymentLogosContainer: {
-    width: '100%',
-    height: 120,
-    justifyContent: 'center',
+  paymentCard: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
+    position: 'relative',
+  },
+  paymentMethodRow:{
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 15
+  },
+  paymentCardSelected: {
+    borderColor: '#06193b',
+    borderColor: '#f0f7ff',
+    backgroundColor: '#f0f7ff',
+  },
+  selectedDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: '#06193b',
+  },
+  paymentLogosContainer: {
     marginBottom: 8,
   },
   paymentLogosImage: {
