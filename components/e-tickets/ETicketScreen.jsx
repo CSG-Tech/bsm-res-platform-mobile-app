@@ -420,7 +420,7 @@ const ETicketScreen = () => {
           </View>
 
           <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity style={styles.actionButtonPrimary}>
+            {/* <TouchableOpacity style={styles.actionButtonPrimary}>
               <Ionicons name="calendar-outline" size={20} color="#3B82F6" />
               <Text style={styles.actionButtonTextPrimary}>{t('eticket.reschedule')}</Text>
             </TouchableOpacity>
@@ -428,7 +428,7 @@ const ETicketScreen = () => {
             <TouchableOpacity style={styles.actionButtonPrimary}>
               <Ionicons name="swap-horizontal-outline" size={20} color="#3B82F6" />
               <Text style={styles.actionButtonTextPrimary}>{t('eticket.changeDegree')}</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             <TouchableOpacity 
               style={styles.actionButtonDanger}
@@ -466,12 +466,12 @@ const ETicketScreen = () => {
               <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                 <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.viewTransaction')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
+              {/* <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                 <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.changeDegree')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                 <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.reschedule')}</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
               <TouchableOpacity style={styles.menuItem} onPress={() => {
                 setMenuVisible(false); 
                 setShowCancelTicketsModal(true);

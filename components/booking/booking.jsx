@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 // import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -266,6 +266,10 @@ const BookingScreen = () => {
   const [isClassModalVisible, setClassModalVisible] = useState(false);
   const [isCalendarModalVisible, setCalendarModalVisible] = useState(false);
   const [isPassengerModalVisible, setPassengerModalVisible] = useState(false);
+  const lastLoadedRef = useRef(0);
+  const STALE_AFTER = 5 * 1 * 1000; // 5 minutes
+  const hasLoadedRef = useRef(false);
+
   const filteredClasses = React.useMemo(() => {
     if (!classes || !Array.isArray(classes)) {
       return [];
@@ -313,8 +317,7 @@ const BookingScreen = () => {
     return token;
   }
 
-  useEffect(() => {
-    const registerDevice = async () => {
+      const registerDevice = async () => {
       try {
         const deviceId = await getOrCreateDeviceId();
         // const deviceToken = await registerForPushNotificationsAsync();
@@ -360,16 +363,31 @@ const BookingScreen = () => {
         setIsLoadingDegrees(false);
       }
     };
-    const init = async () => {
-      await ensureSession();
-      await Promise.all([
-        loadAllDegrees(),
-        loadFromPorts(),
-        registerDevice(),
-      ]);
-    };
-    init();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const init = async () => {
+        await ensureSession();
+        await Promise.all([
+          loadAllDegrees(),
+          loadFromPorts(),
+          registerDevice(),
+        ]);
+      };
+      if(hasLoadedRef.current) {
+        init();
+        hasLoadedRef.current = true;
+        return;
+      }
+      
+      const now = Date.now();
+      if (now - lastLoadedRef.current > STALE_AFTER) {
+        loadFromPorts();
+        loadAllDegrees();
+        lastLoadedRef.current = now;
+      }
+    }, [])
+  );
+
 
   const totalPassengers = passengers.adult + passengers.child + passengers.infant;
   const handleSearch = () => {
