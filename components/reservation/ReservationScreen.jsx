@@ -581,10 +581,13 @@ const ReservationScreen = () => {
   const isRTL = i18n.language === "ar";
   const [availablePrices, setAvailablePrices] = useState([]);
   const [loadingPrices, setLoadingPrices] = useState(false);
+  const [passportErrors, setPassportErrors] = useState({});
 
-  // Replace the useEffect with useMemo for instant recalculation
-  const passportErrors = useMemo(() => {
+
+  // Check for duplicates whenever passport numbers change
+  useEffect(() => {
     const errors = {};
+    
     allPassengersDetails.forEach((passenger) => {
       if (passenger.passportNumber && passenger.passportNumber.trim()) {
         const hasDuplicate = allPassengersDetails.some(
@@ -593,15 +596,17 @@ const ReservationScreen = () => {
             p.passportNumber && 
             p.passportNumber.trim().toUpperCase() === passenger.passportNumber.trim().toUpperCase()
         );
+        
         if (hasDuplicate) {
           errors[passenger.id] = t("reservation.duplicatePassport");
         }
       }
     });
-    return errors;
-  }, [allPassengersDetails, t]);
+    
+    setPassportErrors(errors);
+  }, [allPassengersDetails]);
 
-  useEffect(() => {
+ useEffect(() => {
     const fetchPrices = async () => {
       if (!tripSerial) return;
       
@@ -736,6 +741,8 @@ const { control, handleSubmit, watch, formState: { errors }, setValue } = useFor
         if (p.id !== id) return p;
         
         if (field === 'degree' && value) {
+          console.log('Updating degree for passenger', id, 'to', value);
+          console.log('availablePrices', availablePrices);
           return { 
             ...p, 
             degree: value,
