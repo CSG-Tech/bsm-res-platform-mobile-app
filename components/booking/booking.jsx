@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import * as Notifications from 'expo-notifications';
+// import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -37,6 +37,7 @@ import CalendarIcon from '../../assets/images/icons/calendar-icon.svg';
 import PassengersIcon from '../../assets/images/icons/passengers-icon.svg';
 import ClassIcon from '../../assets/images/icons/class-icon.svg';
 import { t } from 'i18next';
+import { ensureSession } from '../../axios/bootstrap/authBootstrap';
 
 
 
@@ -316,12 +317,13 @@ const BookingScreen = () => {
     const registerDevice = async () => {
       try {
         const deviceId = await getOrCreateDeviceId();
-        const deviceToken = await registerForPushNotificationsAsync();
+        // const deviceToken = await registerForPushNotificationsAsync();
+        const deviceToken = ''; // Temporarily disable push notifications
         if (deviceToken) {
           await saveDeviceToken(deviceId, deviceToken);
         }
       } catch (error) {
-        console.error('Error registering device for notifications:', error);
+        console.log('Error registering device for notifications:', error);
       }
     };
 
@@ -358,10 +360,15 @@ const BookingScreen = () => {
         setIsLoadingDegrees(false);
       }
     };
-
-    loadAllDegrees();
-    loadFromPorts();
-    registerDevice();
+    const init = async () => {
+      await ensureSession();
+      await Promise.all([
+        loadAllDegrees(),
+        loadFromPorts(),
+        registerDevice(),
+      ]);
+    };
+    init();
   }, []);
 
   const totalPassengers = passengers.adult + passengers.child + passengers.infant;
