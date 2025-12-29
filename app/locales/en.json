@@ -80,7 +80,7 @@
       "lastName": "Last Name",
       "middleName": "Middle Name (optional)",
       "passengerType": "Passenger Type",
-      "gender": "Gender (optional)",
+      "gender": "Gender",
       "birthdate": "Birthdate",
       "travelDetails": "Travel Details",
       "nationality": "Nationality",
@@ -100,7 +100,10 @@
       "search": "Search",
       "noResults": "No results found",
       "close": "Close",
-      "totalPrice": "Total Price"
+      "totalPrice": "Total Price",
+      "duplicatePassport": "This passport number is already used by another passenger",
+      "passportRequired": "Passport number is required",
+      "passportInvalid": "Invalid passport number (6-9 uppercase letters/numbers)"
     },
   "summary": {
     "headerTitle": "Booking Summary",

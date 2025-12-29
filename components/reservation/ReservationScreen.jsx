@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -35,6 +35,7 @@ import {
 const REQUIRED_FIELDS = [
   "firstName",
   "lastName",
+  "gender",
   "birthdate",
   "nationality",
   "birthplace",
@@ -45,14 +46,49 @@ const REQUIRED_FIELDS = [
   "passportIssuingDate",
   "passportExpirationDate",
 ];
-const isPassengerValid = (passenger) => {
-  return REQUIRED_FIELDS.every((field) => {
-    const value = passenger[field];
-    if (typeof value === "string") return value.trim().length > 0;
-    return value !== null && value !== undefined;
-  });
+
+const isDuplicatePassport = (passportNumber, currentPassengerId, allPassengers) => {
+  if (!passportNumber || passportNumber.trim() === '') return false;
+  
+  const trimmedPassport = passportNumber.trim().toUpperCase();
+  
+  return allPassengers.some(
+    passenger => 
+      passenger.id !== currentPassengerId && 
+      passenger.passportNumber && 
+      passenger.passportNumber.trim().toUpperCase() === trimmedPassport
+  );
 };
 
+const isPassengerValid = (passenger, allPassengers = []) => {
+  console.log('Validating passenger:', passenger.id);
+  
+  // Check for duplicate passport
+  if (passenger.passportNumber && isDuplicatePassport(passenger.passportNumber, passenger.id, allPassengers)) {
+    console.log(`  Duplicate passport detected for passenger ${passenger.id}`);
+    return false;
+  }
+  
+  const validationResults = REQUIRED_FIELDS.map((field) => {
+    const value = passenger[field];
+    let isValid = false;
+    
+    if (typeof value === "string") {
+      isValid = value.trim().length > 0;
+    } else if (typeof value === "object" && value !== null) {
+      isValid = true;
+    } else {
+      isValid = value !== null && value !== undefined && value !== "";
+    }
+    
+    console.log(`  ${field}: ${JSON.stringify(value)} -> ${isValid ? 'VALID' : 'INVALID'}`);
+    return isValid;
+  });
+  
+  const allValid = validationResults.every(v => v);
+  console.log(`  Overall: ${allValid ? 'VALID' : 'INVALID'}`);
+  return allValid;
+};
 /* -------------------------------------
   Utilities
 -------------------------------------*/
@@ -238,15 +274,18 @@ const FloatingLabelSelect = ({
 /* -------------------------------------
   FloatingLabelInput
 -------------------------------------*/
-const FloatingLabelInput = ({ label, placeholder, value, onChangeText, styles }) => (
+const FloatingLabelInput = ({ label, placeholder, value, onChangeText, styles, onFocus }) => (
   <View style={styles.inputContainer}>
-    <Text style={[styles.inputLabel, I18nManager.isRTL ? { right: 14 } : { left: 14 }]}>{label}</Text>
+    <Text style={[styles.inputLabel, I18nManager.isRTL ? { right: 14 } : { left: 14 }]}>
+      {label}
+    </Text>
     <TextInput 
       placeholder={placeholder} 
       placeholderTextColor="#b6bdcf" 
       style={[styles.textInput, { textAlign: I18nManager.isRTL ? "right" : "left" }]} 
       value={value} 
       onChangeText={onChangeText}
+      onFocus={onFocus}  // Add this
     />
   </View>
 );
@@ -270,8 +309,17 @@ const PassengerInformationSection = ({
           <TouchableOpacity
             key={passenger.id}
             onPress={() => onSelectPassenger(passenger.id)}
-            style={[styles.passengerButton, isSelected ? styles.passengerButtonSelected : styles.passengerButtonDefault]}
+            style={[
+              styles.passengerButton, 
+              isSelected ? styles.passengerButtonSelected : styles.passengerButtonDefault,
+              passenger.hasError && { borderColor: 'red', borderWidth: 2 }
+            ]}
           >
+            {passenger.hasError && (
+              <View style={{ position: 'absolute', top: -5, right: -5, backgroundColor: 'red', borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>!</Text>
+              </View>
+            )}
             {isSelected && index > 0 && (
               <TouchableOpacity
                 style={styles.removePassengerIcon}
@@ -297,7 +345,7 @@ const PassengerInformationSection = ({
 /* -------------------------------------
   TravelDetailsSection
 -------------------------------------*/
-const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors,watch, t, styles,tripSerial }) => {
+const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors,watch, t, styles,tripSerial, passportErrors }) => {
   if (!passengerDetails) return null;
   const { i18n } = useTranslation();
   const passengerId = passengerDetails.id;
@@ -319,6 +367,7 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors
               value={passengerDetails.firstName}
               onChangeText={(text) => onInputChange("firstName", text)}
               styles={styles}
+              onFocus={() => {}}
             />
           </View>
           <View style={{flex: 1}}>
@@ -328,6 +377,7 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors
               value={passengerDetails.lastName}
               onChangeText={(text) => onInputChange("lastName", text)}
               styles={styles}
+              onFocus={() => {}}
             />
           </View>
         </View>
@@ -337,6 +387,7 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors
             value={passengerDetails.middleName}
             onChangeText={(text) => onInputChange("middleName", text)}
             styles={styles}
+            onFocus={() => {}}
           />
         <FloatingLabelSelect
           label={t("reservation.gender")}
@@ -351,6 +402,7 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors
           value={passengerDetails.birthdate} 
           onChangeDate={(text) => onInputChange("birthdate", text)} 
           styles={styles} 
+          onFocus={() => {}}
         />
       </View>
       <View style={styles.formSection}>
@@ -375,7 +427,8 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors
             placeholder={t("reservation.enter")} 
             value={passengerDetails.birthplace} 
             onChangeText={(text) => onInputChange("birthplace", text)}
-            styles={styles} />
+            styles={styles} 
+            onFocus={() => {}}/>
         <FloatingLabelSelect
           label={t("reservation.class")}
           placeholder={t("reservation.select")}
@@ -400,6 +453,7 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors
             value={passengerDetails.visaNumber} 
             onChangeText={(text) => onInputChange("visaNumber", text)}
             styles={styles} 
+            onFocus={() => {}}
           />
         <FloatingLabelSelect
           label={t("reservation.visaType")}
@@ -427,10 +481,10 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors
             control={control}
             name={`${passengerId}.passportNumber`}
             rules={{
-              required: "Passport number is required",
+              required: t("reservation.passportRequired"),
               pattern: {
                 value: /^[A-Z0-9]{6,9}$/,
-                message: "Invalid passport number (6-9 uppercase letters/numbers)"
+                message: t("reservation.passportInvalid")
               }
             }}
             render={({ field: { onChange, value } }) => (
@@ -443,11 +497,21 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors
                   onInputChange("passportNumber", text); // Update state
                 }}
                 styles={styles}
+                onFocus={() => {}}
               />
             )}
           />
             {errors[passengerId]?.passportNumber && (
               <Text style={{ color: "red" }}>{errors[passengerId].passportNumber.message}</Text>
+          )}
+          {passportErrors[passengerId] && (
+            <Text style={{       color: "red", 
+                fontSize: 12, 
+                marginTop: -12,  // Negative margin to bring it closer to input
+                marginLeft: 10,
+                fontFamily: "Inter-Regular"}}>
+            ⚠️ {passportErrors[passengerId]}
+          </Text>
           )}
           {/* passport issuing date */}
           <Controller
@@ -467,6 +531,7 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors
                   onInputChange("passportIssuingDate", date); // Update state
                 }}
                 styles={styles}
+                onFocus={() => {}}
               />
             )}
           />
@@ -494,6 +559,7 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors
                   onInputChange("passportExpirationDate", date); // Update state
                 }}
                 styles={styles}
+                onFocus={() => {}}
               />
             )}
           />
@@ -516,8 +582,26 @@ const ReservationScreen = () => {
   const [availablePrices, setAvailablePrices] = useState([]);
   const [loadingPrices, setLoadingPrices] = useState(false);
 
+  // Replace the useEffect with useMemo for instant recalculation
+  const passportErrors = useMemo(() => {
+    const errors = {};
+    allPassengersDetails.forEach((passenger) => {
+      if (passenger.passportNumber && passenger.passportNumber.trim()) {
+        const hasDuplicate = allPassengersDetails.some(
+          p => 
+            p.id !== passenger.id && 
+            p.passportNumber && 
+            p.passportNumber.trim().toUpperCase() === passenger.passportNumber.trim().toUpperCase()
+        );
+        if (hasDuplicate) {
+          errors[passenger.id] = t("reservation.duplicatePassport");
+        }
+      }
+    });
+    return errors;
+  }, [allPassengersDetails, t]);
 
- useEffect(() => {
+  useEffect(() => {
     const fetchPrices = async () => {
       if (!tripSerial) return;
       
@@ -574,13 +658,18 @@ const ReservationScreen = () => {
   });
 
   const [selectedPassengerId, setSelectedPassengerId] = useState(1);
+
   const passengerTabs = allPassengersDetails.map((p) => {
     const fullName = [p.firstName, p.lastName].filter(Boolean).join(' ');
+    const hasDuplicatePassport = p.passportNumber && isDuplicatePassport(p.passportNumber, p.id, allPassengersDetails);
+    
     return {
       id: p.id,
-      label: fullName || t("reservation.passengerLabel", { count: p.id })
+      label: fullName || t("reservation.passengerLabel", { count: p.id }),
+      hasError: hasDuplicatePassport
     };
   });
+
   const currentPassengerDetails = allPassengersDetails.find((p) => p.id === selectedPassengerId);
 
 
@@ -610,7 +699,7 @@ const ReservationScreen = () => {
   };
 
   const stylesComputed = getStyles(isRTL);
-  const scrollViewRef = React.useRef(null);
+  // const scrollViewRef = React.useRef(null);
   
   const currentPassenger = allPassengersDetails?.find(p => p.id === selectedPassengerId);
   const currentPassengerPrice = currentPassenger?.price || 0;
@@ -618,9 +707,10 @@ const ReservationScreen = () => {
   const totalPrice = (allPassengersDetails || []).reduce((sum, passenger) => {
     return sum + (passenger.price || 0);
   }, 0);
-  const isFormValid = allPassengersDetails.every(isPassengerValid);
+  const isFormValid = allPassengersDetails.every(p => isPassengerValid(p, allPassengersDetails));
 // validation for passport, expiry and start date
 const { control, handleSubmit, watch, formState: { errors }, setValue } = useForm({
+  mode: 'onChange',
   defaultValues: allPassengersDetails.reduce((acc, p) => {
     acc[p.id] = { 
       passportNumber: p.passportNumber,
@@ -660,6 +750,10 @@ const { control, handleSubmit, watch, formState: { errors }, setValue } = useFor
   };
 
 const hasErrors = Object.keys(errors).length > 0;
+console.log('=== BUTTON STATE ===');
+console.log('isFormValid:', isFormValid);
+console.log('hasErrors:', hasErrors);
+console.log('Button should be enabled:', isFormValid && !hasErrors);
 
 const onSubmit = (data) => {
   const updatedPassengers = allPassengersDetails.map((p) => ({
@@ -703,9 +797,12 @@ const onSubmit = (data) => {
             style={{ flex: 1 }}
             contentContainerStyle={stylesComputed.scrollContent}
             enableOnAndroid={true}
-            extraScrollHeight={120}
+            extraScrollHeight={150}  // Increased from 120 to 150
+            extraHeight={150}        // Added extra height
+            enableAutomaticScroll={true}  // Ensures automatic scrolling
             keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}>
+            showsVerticalScrollIndicator={false}
+            enableResetScrollToCoords={false}>
             <View style={stylesComputed.tripSummary}>
               <Text style={stylesComputed.tripTitle}>{incomingTrip?.tripName ?? t("reservation.trip")}</Text>
               <Text style={stylesComputed.tripSub}>{`${fromPort} → ${toPort}`}</Text>
@@ -727,7 +824,8 @@ const onSubmit = (data) => {
               t={t}
               tripSerial={tripSerial}
               styles={stylesComputed}
-              scrollViewRef={scrollViewRef}/>
+              passportErrors={passportErrors}
+              />
           </KeyboardAwareScrollView>
           <View style={stylesComputed.footer}>
             <View style={stylesComputed.priceSection}>
@@ -751,15 +849,20 @@ const onSubmit = (data) => {
                 </Text>
               </View>
             </View>
+
             <TouchableOpacity 
-              style={[stylesComputed.continueButton,
-                  !isFormValid && { backgroundColor: "#b6bdcf" }]}
-              disabled={!isFormValid && hasErrors} 
-              onPress={handleSubmit(onSubmit)}>
+              style={[
+                stylesComputed.continueButton,
+                (!isFormValid || hasErrors) && { backgroundColor: "#b6bdcf" }  // Gray when INVALID or has errors
+              ]}
+              disabled={!isFormValid || hasErrors}  // Disabled when INVALID or has errors
+              onPress={handleSubmit(onSubmit)}
+            >
               <Text style={stylesComputed.continueButtonText}>
                 {t("reservation.continue")}
               </Text>
             </TouchableOpacity>
+
           </View>
         </KeyboardAvoidingView>
       </View>
