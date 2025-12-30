@@ -12,10 +12,12 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { clearPendingReservation } from '../../axios/storage/reservationStorage';
 import { getTripSummary, getReservationDetails } from '../../axios/services/ticketService';
+import Toast from 'react-native-toast-message';
 // import { Clipboard } from '@react-native-clipboard/clipboard';
 
 const DetailCard = ({ title, children }) => (
@@ -25,19 +27,39 @@ const DetailCard = ({ title, children }) => (
   </View>
 );
 
-const DetailRow = ({ label, value, valueStyle, showCopy = false, children }) => (
-  <View style={[styles.detailRow, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
-    <Text style={styles.detailLabel}>{label}</Text>
-    {value ? (
-      <View style={[styles.valueContainer, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
-        <Text style={[styles.detailValue, valueStyle]}>{value}</Text>
-        {showCopy && <Copy size={20} color="#000" style={I18nManager.isRTL ? { marginRight: 8 } : { marginLeft: 8 }} />}
-      </View>
-    ) : (
-      children
-    )}
-  </View>
-);
+const DetailRow = ({ label, value, valueStyle, showCopy = false, children }) => {
+  const {t} = useTranslation();
+    const handleCopy = async () => {
+    if (value) {
+      await Clipboard.setStringAsync(value);
+      Toast.show({
+        type: 'success',
+        text1: t('common.copied') || 'Copied',
+        text2: t('common.copiedToClipboard') || 'Copied to clipboard',
+        position: 'bottom',
+        visibilityTime: 2000,
+      });
+    }
+  };
+
+  return (
+    <View style={[styles.detailRow, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      {value ? (
+        <View style={[styles.valueContainer, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
+          <Text style={[styles.detailValue, valueStyle]}>{value}</Text>
+          {showCopy && (
+            <TouchableOpacity onPress={handleCopy}>
+              <Copy size={20} color="#6291E8" style={I18nManager.isRTL ? { marginRight: 8 } : { marginLeft: 8 }} />
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : (
+        children
+      )}
+    </View>
+  );
+};
 
 const ConfirmationScreen = () => {
   const router = useRouter();
@@ -125,7 +147,7 @@ const ConfirmationScreen = () => {
   const tickets = reservation.tickets || [];
   const totalAmount = reservation.totalAmount || 0;
   const currency = reservation.currency === 1 ? 'SAR' : '$';
-  const paymentStatus = reservation.status;
+  const paymentStatus = reservation.status === 'PAID' || reservation.status === 'ISSUED' ? 'PROCESSED' : reservation.status;
 
   // Format dates
   const startDate = tripData?.startDate ? new Date(tripData.startDate) : null;
@@ -224,6 +246,7 @@ const ConfirmationScreen = () => {
             <View style={styles.detailsWidget}>
               <DetailCard title={t('confirmation.transactionDetails')}>
                 <DetailRow label={t('confirmation.reservationNumber')} value={reservation.oracleResNo?.toString() || reservation.id?.toString()} showCopy />
+                {/* <DetailRow label={t('confirmation.paymentId')} value={reservation.paymentIntent?.toString()} showCopy /> */}
                 <DetailRow label={t('confirmation.paymentMethod')} value={reservation.paymentProvider || 'N/A'} />
                 <DetailRow label={t('confirmation.paymentState')} value={paymentStatus} />
                 <DetailRow label={t('confirmation.totalPrice')} value={`${currency} ${totalAmount.toFixed(2)}`} />
@@ -245,13 +268,12 @@ const ConfirmationScreen = () => {
               <DetailCard>
                 <View style={[styles.detailRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                   <Text style={styles.cardTitle}>{t('confirmation.passenger')}</Text>
-                  <Text style={styles.cardTitle}>{t('confirmation.pnr')}</Text>
                 </View>
                 {tickets.map((ticket, index) => (
                   <DetailRow 
                     key={ticket.id || index} 
                     label={`${ticket.passengerName || ''}`} 
-                    value={reservation.pnr || 'N/A'} 
+                    value={''} 
                     showCopy 
                   />
                 ))}
@@ -288,6 +310,7 @@ const ConfirmationScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
+    <Toast />
     </SafeAreaView>
   );
 };
@@ -451,10 +474,10 @@ const styles = StyleSheet.create({
       gap: 16,
     },
     cardTitle: { fontFamily: 'Inter-Bold', fontSize: 16, color: 'black', marginBottom: 8 },
-    detailRow: { justifyContent: 'space-between', alignItems: 'center' },
+    detailRow: { justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' },
     detailLabel: { fontFamily: 'Inter-Regular', fontSize: 16, color: 'black' },
     valueContainer: { alignItems: 'center' },
-    detailValue: { fontFamily: 'Inter-Bold', fontSize: 14, color: 'black' },
+    detailValue: { fontFamily: 'Inter-Bold', fontSize: 14, color: 'black', flexShrink: 1, flexWrap: 'wrap' },
     boldText: { fontFamily: 'Inter-Bold', fontSize: 16 },
     footer: {
       position: 'absolute',

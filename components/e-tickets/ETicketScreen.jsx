@@ -205,6 +205,16 @@ const ETicketScreen = () => {
     fetchReservationData();
   }, [params.lastName, params.passportNumber, params.reservationNumber, t]);
 
+  const redirectToTransaction = () =>{
+    router.push({
+    pathname: '/confirmation',
+    params: {
+      reservationId: params.reservationNumber  // The reservation ID (can be string or number)
+    }
+  });
+
+  }
+
   const handleMenuPress = () => {
     if (menuButtonRef.current) {
       menuButtonRef.current.measureInWindow((x, y, width, height) => {
@@ -463,7 +473,10 @@ const ETicketScreen = () => {
         <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
           <View style={styles.menuOverlay}>
             <View style={[styles.menuContainer, { top: menuPosition.top, right: menuPosition.right, left: menuPosition.left }]}>
-              <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
+              <TouchableOpacity style={styles.menuItem} onPress={() => {
+                setMenuVisible(false);
+                redirectToTransaction();
+                }}>
                 <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.viewTransaction')}</Text>
               </TouchableOpacity>
               {/* <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>

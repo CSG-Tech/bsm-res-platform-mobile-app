@@ -55,7 +55,9 @@
     "cancel": "Cancel",
     "ok": "OK",
     "loading": "Loading..",
-    "goBack": "Return"
+    "goBack": "Return",
+    "copied": "Copied",
+    "copiedToClipboard": "Copied to clipboard"
   },
   "navigation": {
     "home": "Home",
@@ -254,12 +256,13 @@
     "successTitle": "Booking Confirmed",
     "successMessage": "Thank you for booking with Bassam Shipping. Please take a moment to review your itinerary and e-ticket below. For any assistance or inquiries, please email us at <1>emailaddress@example.com</1> or call us at <3>+201234567890</3>.",
     "vesselName": "Vessel Name",
-    "estPrice": "Est. Price",
+    "estPrice": "Price",
     "pax": "/pax",
     "departure": "Departure",
     "arrival": "Arrival",
     "transactionDetails": "Transaction Details",
     "reservationNumber": "Reservation Number",
+    "paymentId":"Payment ID",
     "paymentMethod": "Payment Method",
     "paymentState": "Payment State",
     "totalPrice": "Total Price",

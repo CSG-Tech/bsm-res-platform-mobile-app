@@ -15,6 +15,7 @@ import {
   View
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { clearPendingReservation } from '../axios/storage/reservationStorage';
 
 const PaymentWebViewScreen = () => {
   const router = useRouter();
@@ -31,7 +32,7 @@ const PaymentWebViewScreen = () => {
   const successStatuses = ['paid', 'authorized', 'success'];
 
   // Handle messages from WebView
-  const handleWebViewMessage = (event) => {
+  const handleWebViewMessage = async (event) => {
     try {
       const message = JSON.parse(event.nativeEvent.data);
       console.log('WebView message:', message);
@@ -52,6 +53,7 @@ const PaymentWebViewScreen = () => {
           
           // Route based on status
           if (successStatuses.includes(status)) {
+            await clearPendingReservation(); // ✅ Clear on success
             router.replace({
               pathname: '/confirmation',
               params: {
@@ -81,9 +83,9 @@ const PaymentWebViewScreen = () => {
   };
 
   // Intercept navigation to handle deep links
-  const handleShouldStartLoadWithRequest = (request) => {
+  const handleShouldStartLoadWithRequest = (request) => { // ❌ Remove async
     console.log('Navigation request:', request.url);
-
+    
     // Intercept deep link
     if (request.url.startsWith('bassamshipping://')) {
       const urlParts = request.url.split('?');
@@ -95,38 +97,46 @@ const PaymentWebViewScreen = () => {
 
       console.log('Deep link intercepted:', { path, status, paymentId, reservationId });
 
-      // If the deep link already has the correct path, use it
-      if (path === 'confirmation' || path === 'failed-booking') {
-        router.replace({
-          pathname: `/${path}`,
-          params: {
-            status: status || 'processing',
-            paymentId: paymentId || '',
-            reservationId: reservationId || ''
+      // Clear reservation and navigate (don't await here)
+      const navigateWithClear = async () => {
+        if (path === 'confirmation' || path === 'failed-booking') {
+          if (path === 'confirmation') {
+            await clearPendingReservation();
           }
-        });
-      } else {
-        // Otherwise, determine the path based on status
-        if (successStatuses.includes(status?.toLowerCase())) {
           router.replace({
-            pathname: '/confirmation',
+            pathname: `/${path}`,
             params: {
-              status: status || 'paid',
+              status: status || 'processing',
               paymentId: paymentId || '',
               reservationId: reservationId || ''
             }
           });
         } else {
-          router.replace({
-            pathname: '/failed-booking',
-            params: {
-              status: status || 'failed',
-              paymentId: paymentId || '',
-              reservationId: reservationId || ''
-            }
-          });
+          // Otherwise, determine the path based on status
+          if (successStatuses.includes(status?.toLowerCase())) {
+            await clearPendingReservation();
+            router.replace({
+              pathname: '/confirmation',
+              params: {
+                status: status || 'paid',
+                paymentId: paymentId || '',
+                reservationId: reservationId || ''
+              }
+            });
+          } else {
+            router.replace({
+              pathname: '/failed-booking',
+              params: {
+                status: status || 'failed',
+                paymentId: paymentId || '',
+                reservationId: reservationId || ''
+              }
+            });
+          }
         }
-      }
+      };
+      
+      navigateWithClear(); // Call async function but don't await
 
       // Prevent WebView from trying to load the deep link
       return false;
