@@ -230,23 +230,25 @@ const handleContinue = async () => {
   if (!parsedPayload || !tripData || !prices.length) return;
   setLoadingPayment(true);
   // Check retry limit using ref (always current)
-  if (retryCountRef.current >= 3) {
+  if (retryCountRef.current >= 1) {
     await clearPendingReservation();
     retryCountRef.current = 0; // Reset ref
     setRetryCount(0); // Reset state
-    Alert.alert(
-      t('summary.error'),
-      t('summary.tooManyRetries'),
-      [
-        {
-          text: t('summary.ok'),
-          onPress: () => {
-            router.dismissAll();
-            router.replace('/');
-          }   
-        }
-      ]
-    );
+    if(retryCountRef.current >= 2){
+        Alert.alert(
+          t('summary.error'),
+          t('summary.tooManyRetries'),
+          [
+            {
+              text: t('summary.ok'),
+              onPress: () => {
+                router.dismissAll();
+                router.replace('/');
+              }   
+            }
+          ]
+        );
+      }
     return;
   }
 

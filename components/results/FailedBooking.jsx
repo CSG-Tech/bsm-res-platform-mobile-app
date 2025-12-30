@@ -23,12 +23,10 @@ const FailedBooking = () => {
 
   const handleRetryPayment = () => {
     if (reservationId) {
-      router.replace({
-        pathname: '/payment',
-        params: { reservationId }
-      });
+        router.back();
     } else {
-      router.back();
+      router.dismissAll();
+      router.replace('/');
     }
   };
 

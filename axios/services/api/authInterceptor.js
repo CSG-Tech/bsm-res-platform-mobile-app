@@ -11,7 +11,12 @@ export const attachAuthInterceptors = (api) => {
   console.log(`📡 Axios initialized with baseURL: ${baseURL}`);
   // Add access token to all requests
   api.interceptors.request.use(async (config) => {
-    const { accessToken } = await getTokens();
+    let accessToken;
+    try {
+      ({ accessToken } = await getTokens());
+    } catch (e) {
+      console.warn('Failed to get access token', e);
+    }
     if (accessToken) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${accessToken}`;
@@ -40,6 +45,10 @@ export const attachAuthInterceptors = (api) => {
   api.interceptors.response.use(
     (res) => res,
     async (error) => {
+      if (!error?.config) {
+        return Promise.reject(error);
+      }
+
       const originalRequest = error.config;
       if (error.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
@@ -58,8 +67,12 @@ export const attachAuthInterceptors = (api) => {
           await saveTokens(newTokens);
 
           // Update token for retry
-          api.defaults.headers.Authorization = `Bearer ${newTokens.accessToken}`;
-          originalRequest.headers.Authorization = `Bearer ${newTokens.accessToken}`;
+          api.defaults.headers.common.Authorization =
+            `Bearer ${newTokens.accessToken}`;
+          originalRequest.headers = originalRequest.headers || {};
+          originalRequest.headers.Authorization =
+            `Bearer ${newTokens.accessToken}`;
+
 
           return api(originalRequest);
         } catch (refreshErr) {

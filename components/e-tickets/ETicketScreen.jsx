@@ -90,7 +90,7 @@ const TicketCard = ({ t, i18n, passengerName, ticketData, summaryData }) => {
     degree: i18n.language === 'ar' ? ticketData?.degree?.degreeArabName : ticketData?.degree?.degreeEnglishName, // Would need degree name lookup from degreeCode
     route: summaryData ? `${i18n.language === 'ar' ? summaryData.fromPortArab : summaryData.fromPortEng} - ${i18n.language === 'ar' ? summaryData.toPortArab : summaryData.toPortEng}` : '',
     passportNumber: ticketData?.passportNumber || '',
-    ticketNumber: ticketData?.oracleTicketNo || '',
+    ticketNumber: ticketData?.oraclePrintTicketNo || '',
     reservationNumber: ticketData?.oracleAgentResNo || ticketData?.oracleTicketNo || '',
   };
 console.log('Barcode value:', ticketData?.oraclePrintTicketNo);
@@ -204,6 +204,16 @@ const ETicketScreen = () => {
 
     fetchReservationData();
   }, [params.lastName, params.passportNumber, params.reservationNumber, t]);
+
+  const redirectToTransaction = () =>{
+    router.push({
+    pathname: '/confirmation',
+    params: {
+      reservationId: params.reservationNumber  // The reservation ID (can be string or number)
+    }
+  });
+
+  }
 
   const handleMenuPress = () => {
     if (menuButtonRef.current) {
@@ -420,7 +430,7 @@ const ETicketScreen = () => {
           </View>
 
           <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity style={styles.actionButtonPrimary}>
+            {/* <TouchableOpacity style={styles.actionButtonPrimary}>
               <Ionicons name="calendar-outline" size={20} color="#3B82F6" />
               <Text style={styles.actionButtonTextPrimary}>{t('eticket.reschedule')}</Text>
             </TouchableOpacity>
@@ -428,7 +438,7 @@ const ETicketScreen = () => {
             <TouchableOpacity style={styles.actionButtonPrimary}>
               <Ionicons name="swap-horizontal-outline" size={20} color="#3B82F6" />
               <Text style={styles.actionButtonTextPrimary}>{t('eticket.changeDegree')}</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             <TouchableOpacity 
               style={styles.actionButtonDanger}
@@ -463,15 +473,18 @@ const ETicketScreen = () => {
         <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
           <View style={styles.menuOverlay}>
             <View style={[styles.menuContainer, { top: menuPosition.top, right: menuPosition.right, left: menuPosition.left }]}>
-              <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
+              <TouchableOpacity style={styles.menuItem} onPress={() => {
+                setMenuVisible(false);
+                redirectToTransaction();
+                }}>
                 <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.viewTransaction')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
+              {/* <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                 <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.changeDegree')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                 <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.reschedule')}</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
               <TouchableOpacity style={styles.menuItem} onPress={() => {
                 setMenuVisible(false); 
                 setShowCancelTicketsModal(true);

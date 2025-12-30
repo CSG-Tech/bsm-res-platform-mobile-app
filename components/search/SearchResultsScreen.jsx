@@ -205,6 +205,9 @@ const SearchResultsScreen = () => {
         icon: <ShipIcon width={35} height={35}/>,
         currencySymbol: vessel.currencySymbol,
         currencyPrint: i18n.language === 'ar' ? vessel.currencyArbPrint : vessel.currencyPrint,
+        quotaStatus: vessel.quotaStatus,
+        isAvailable: vessel.quotaStatus?.available || false,
+        seatsRemaining: vessel.quotaStatus?.remaining || 0,
       };
     });
   }, [tripsData, i18n.language, fromPort, toPort, calendarType]);
@@ -242,10 +245,38 @@ const SearchResultsScreen = () => {
   }, [selectedDate, lineCode, travelClassId]);
 
   const handleTicketPress = (vessel) => {
-    router.push({
-      pathname: "/vessel-details",
-      params: { ...vessel, fromPort, toPort },
-    });
+    if (vessel.seatsRemaining === 0) {
+      Alert.alert(
+        t('searchResults.noSeatsTitle'),
+        t('searchResults.noSeatsMessage'),
+        [{ text: t('common.ok') }]
+      );
+      return;
+    }
+    if (!vessel.isAvailable || vessel.seatsRemaining < totalPassengers) {
+      Alert.alert(
+        t('searchResults.quotaWarningTitle'),
+        t('searchResults.quotaWarningMessage', { 
+          selected: totalPassengers, 
+          available: vessel.seatsRemaining 
+        }),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { 
+            text: t('searchResults.continueAnyway'), 
+            onPress: () => router.push({
+              pathname: "/vessel-details",
+              params: { ...vessel, fromPort, toPort },
+            })
+          }
+        ]
+      );
+    } else {
+      router.push({
+        pathname: "/vessel-details",
+        params: { ...vessel, fromPort, toPort },
+      });
+    }
   };
 
   const handleDateSelect = async (dateOption) => {
@@ -345,7 +376,23 @@ const SearchResultsScreen = () => {
                 <TouchableOpacity key={index} onPress={() => handleTicketPress(vessel)}>
                   <TicketWidget>
                     <View style={styles.vesselCardHeader}>
-                      <Text style={styles.vesselName}>{vessel.vesselName || 'N/A'}</Text>                 
+                      <Text style={styles.vesselName}>{vessel.vesselName || 'N/A'}</Text>           
+                      { vessel.seatsRemaining < totalPassengers && (
+                      <View style={[
+                        styles.warningBanner,
+                        vessel.seatsRemaining === 0 && styles.warningBannerError
+                      ]}>
+                        <Text style={[
+                          styles.warningText,
+                          vessel.seatsRemaining === 0 && styles.warningTextError
+                        ]}>
+                          {vessel.seatsRemaining === 0 
+                            ? t('searchResults.noSeatsRemaining')
+                            : t('searchResults.seatsRemaining', { count: vessel.seatsRemaining })
+                          }
+                        </Text>
+                      </View>
+                    )}      
                     </View>
                     <View style={styles.separator} />
                     <View style={styles.vesselDetailsContainer}>
@@ -815,7 +862,28 @@ dateText: {
   selectButtonText: { color: 'white', fontWeight: 'bold' },
   closeButton: { marginTop: 10, paddingVertical: 14, backgroundColor: '#0A2351', borderRadius: 12, alignItems: 'center' },
   closeButtonText: { color: 'white', fontWeight: 'bold' },
-
+  warningBanner: {
+    backgroundColor: '#FFF3CD',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FFC107',
+  },
+  warningText: {
+    fontFamily: 'Cairo-Medium',
+    fontSize: 14,
+    color: '#856404',
+    textAlign: isRTL ? 'right' : 'left',
+  },
+  warningBannerError: {
+    backgroundColor: '#F8D7DA',
+    borderLeftColor: '#DC3545',
+  },
+  warningTextError: {
+    color: '#721C24',
+  },
 });
 
 export default SearchResultsScreen;
