@@ -7,6 +7,7 @@ import {
   Alert,
   I18nManager,
   Image,
+  Keyboard,
   LayoutAnimation,
   Modal,
   Platform,
@@ -74,6 +75,16 @@ const AccordionItem = ({ title }) => {
 };
 
 const TicketCard = ({ t, i18n, passengerName, ticketData, summaryData }) => {
+  // Determine ticket status
+  const getTicketStatus = () => {
+    if (ticketData?.status === 'C') return { text: t('eticket.cancelled'), color: '#EF4444', bgColor: '#FEE2E2' };
+    if (ticketData?.status === 'I') return { text: t('eticket.issued'), color: '#10B981', bgColor: '#D1FAE5' };
+    return { text: t('eticket.processing'), color: '#F59E0B', bgColor: '#FEF3C7' };
+  };
+
+  const ticketStatus = getTicketStatus();
+  const isCancelled = ticketData?.status === 'C';
+
   // Format date helper
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -86,22 +97,32 @@ const TicketCard = ({ t, i18n, passengerName, ticketData, summaryData }) => {
     tripNumber: summaryData?.tripSerial || ticketData?.tripSerial || '',
     tripDate: formatDate(summaryData?.startDate) || '',
     vessel: summaryData?.vessel || '',
-    nationality: i18n.language === 'ar' ? ticketData?.nationality?.natArbName : ticketData?.nationality?.natName, // Not provided in API, would need nationality lookup
-    degree: i18n.language === 'ar' ? ticketData?.degree?.degreeArabName : ticketData?.degree?.degreeEnglishName, // Would need degree name lookup from degreeCode
+    nationality: i18n.language === 'ar' ? ticketData?.nationality?.natArbName : ticketData?.nationality?.natName,
+    degree: i18n.language === 'ar' ? ticketData?.degree?.degreeArabName : ticketData?.degree?.degreeEnglishName,
     route: summaryData ? `${i18n.language === 'ar' ? summaryData.fromPortArab : summaryData.fromPortEng} - ${i18n.language === 'ar' ? summaryData.toPortArab : summaryData.toPortEng}` : '',
     passportNumber: ticketData?.passportNumber || '',
     ticketNumber: ticketData?.oraclePrintTicketNo || '',
     reservationNumber: ticketData?.oracleAgentResNo || ticketData?.oracleTicketNo || '',
   };
-console.log('Barcode value:', ticketData?.oraclePrintTicketNo);
 
   return (
     <View style={styles.cardContainer}>
       <View style={styles.cardContent}>
-        <View style={[styles.cardHeader, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
+        <View style={[
+          styles.cardHeader, 
+          { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' },
+          isCancelled && styles.cardHeaderCancelled
+        ]}>
           <View style={styles.cardHeaderLeft}>
             <Text style={[styles.passengerLabel, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.passengerNameLabel')}</Text>
             <Text style={[styles.passengerName, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{passengerName}</Text>
+            
+            {/* Ticket Status Badge */}
+            <View style={[styles.statusBadge, { backgroundColor: ticketStatus.bgColor }]}>
+              <Text style={[styles.statusText, { color: ticketStatus.color }]}>
+                {ticketStatus.text}
+              </Text>
+            </View>
           </View>
           <Image source={require('../../assets/images/Logo.png')} style={styles.logo} resizeMode="contain" />
         </View>
@@ -122,8 +143,8 @@ console.log('Barcode value:', ticketData?.oraclePrintTicketNo);
           )}
         </View>
       </View>
-      <View style={[styles.ticketNotch, I18nManager.isRTL ? styles.notchRight : styles.notchLeft]} />
-      <View style={[styles.ticketNotch, I18nManager.isRTL ? styles.notchLeft : styles.notchRight]} />
+      <View style={[styles.ticketNotch, I18nManager.isRTL ? styles.notchRight : styles.notchLeft, isCancelled && styles.ticketNotchCancelled]} />
+      <View style={[styles.ticketNotch, I18nManager.isRTL ? styles.notchLeft : styles.notchRight, isCancelled && styles.ticketNotchCancelled]} />
     </View>
   );
 };
@@ -205,11 +226,24 @@ const ETicketScreen = () => {
     fetchReservationData();
   }, [params.lastName, params.passportNumber, params.reservationNumber, t]);
 
+  // Check if reservation is cancelled
+  const isReservationCancelled = () => {
+    // Check if status is explicitly CANCELLED
+    if (reservationData?.status === 'CANCELLED') return true;
+    
+    // Check if all tickets are cancelled
+    if (reservationData?.tickets && reservationData.tickets.length > 0) {
+      return reservationData.tickets.every(ticket => ticket.status === 'C');
+    }
+    
+    return false;
+  };
+
   const redirectToTransaction = () =>{
     router.push({
     pathname: '/confirmation',
     params: {
-      reservationId: params.reservationNumber  // The reservation ID (can be string or number)
+      reservationId: params.reservationNumber
     }
   });
 
@@ -243,10 +277,12 @@ const ETicketScreen = () => {
       return;
     }
     
+    const resId = params.reservationNumber || reservationData?.tickets?.[0]?.reservationId;
+    
     setCancelling(true);
     try {
       await cancelReservation({
-        reservationId: Number(reservationData?.summary?.id || params.reservationNumber),
+        reservationId: Number(resId),
         reason: reason,
         refundType: 'full'
       });
@@ -258,7 +294,6 @@ const ETicketScreen = () => {
       console.error('Cancel reservation error:', error);
       console.error('Error response:', error.response?.data);
       
-      // Handle 400 error specifically
       if (error.response?.status === 400) {
         Alert.alert(
           t('eticket.cannotCancelTitle'),
@@ -307,7 +342,6 @@ const ETicketScreen = () => {
       console.error('Cancel tickets error:', error);
       console.error('Error response:', error.response?.data);
       
-      // Handle 400 error specifically
       if (error.response?.status === 400) {
         Alert.alert(
           t('eticket.cannotCancelTitle'),
@@ -334,6 +368,7 @@ const ETicketScreen = () => {
       setCancelling(false);
     }
   };
+
   const currentPassenger = passengers[selectedPassengerIndex];
   const currentPassengerName = currentPassenger?.name || "Passenger";
   const currentTicketData = currentPassenger?.ticketData;
@@ -390,15 +425,26 @@ const ETicketScreen = () => {
     );
   }
 
+  const reservationCancelled = isReservationCancelled();
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#edf3ff" />
       <View style={styles.container}>
+        {reservationCancelled && (
+          <View style={styles.cancelledBanner}>
+            <Ionicons name="close-circle" size={18} color="#FFF" />
+            <Text style={styles.cancelledBannerText}>{t('eticket.reservationCancelled')}</Text>
+          </View>
+        )}
+        
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
             <ArrowLeft size={28} color="#000" style={I18nManager.isRTL && { transform: [{ scaleX: -1 }] }} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('eticket.headerTitle')}</Text>
+          <Text style={styles.headerTitle}>
+            {t('eticket.headerTitle')}
+          </Text>
           <TouchableOpacity ref={menuButtonRef} style={styles.iconButton} onPress={handleMenuPress}>
             <MoreHorizontal size={28} color="#000" />
           </TouchableOpacity>
@@ -407,15 +453,22 @@ const ETicketScreen = () => {
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.tabsContainer}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll} inverted={I18nManager.isRTL}>
-              {passengers.map((p, index) => (
-                <TouchableOpacity
-                  key={p.id}
-                  style={[styles.tabButton, index === selectedPassengerIndex ? styles.tabButtonActive : styles.tabButtonInactive]}
-                  onPress={() => setSelectedPassengerIndex(index)}
-                >
-                  <Text style={styles.tabText}>{p.name}</Text>
-                </TouchableOpacity>
-              ))}
+              {passengers.map((p, index) => {
+                const isCancelled = p.ticketData?.status === 'C';
+                return (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={[
+                      styles.tabButton, 
+                      index === selectedPassengerIndex ? styles.tabButtonActive : styles.tabButtonInactive,
+                      isCancelled && styles.tabButtonCancelled
+                    ]}
+                    onPress={() => setSelectedPassengerIndex(index)}
+                  >
+                    <Text style={[styles.tabText, isCancelled && styles.tabTextCancelled]}>{p.name}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
 
@@ -430,16 +483,6 @@ const ETicketScreen = () => {
           </View>
 
           <View style={styles.actionButtonsContainer}>
-            {/* <TouchableOpacity style={styles.actionButtonPrimary}>
-              <Ionicons name="calendar-outline" size={20} color="#3B82F6" />
-              <Text style={styles.actionButtonTextPrimary}>{t('eticket.reschedule')}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionButtonPrimary}>
-              <Ionicons name="swap-horizontal-outline" size={20} color="#3B82F6" />
-              <Text style={styles.actionButtonTextPrimary}>{t('eticket.changeDegree')}</Text>
-            </TouchableOpacity> */}
-
             <TouchableOpacity 
               style={styles.actionButtonDanger}
               onPress={() => setShowOTP(true)}
@@ -479,12 +522,6 @@ const ETicketScreen = () => {
                 }}>
                 <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.viewTransaction')}</Text>
               </TouchableOpacity>
-              {/* <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.changeDegree')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.reschedule')}</Text>
-              </TouchableOpacity> */}
               <TouchableOpacity style={styles.menuItem} onPress={() => {
                 setMenuVisible(false); 
                 setShowCancelTicketsModal(true);
@@ -497,32 +534,40 @@ const ETicketScreen = () => {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-      <OTPVerificationModal
-        visible={showOTP}
-        onClose={() => setShowOTP(false)}
-        onSuccess={() => {
-          console.log("OTP Success!");
-          setShowOTP(false);
-          setShowCancelReservationModal(true);
-        }}
-        phoneNumber="+201234567890"
-      />
-      <CancelReservationModal
-        visible={showCancelReservationModal}
-        onClose={() => setShowCancelReservationModal(false)}
-        onConfirm={handleCancelReservationConfirm}
-        loading={cancelling}
-        reservationId={reservationData?.summary?.id || params.reservationNumber}
-      />
 
-      <CancelTicketsModal
-        visible={showCancelTicketsModal}
-        onClose={() => setShowCancelTicketsModal(false)}
-        passengers={passengers}
-        onConfirm={handleCancelTicketsConfirm}
-        loading={cancelling}
-        reservationId={reservationData?.summary?.id || params.reservationNumber}
-      />
+      {showOTP && (
+        <OTPVerificationModal
+          visible={showOTP}
+          onClose={() => setShowOTP(false)}
+          onSuccess={() => {
+            console.log("OTP Success!");
+            setShowOTP(false);
+            setShowCancelReservationModal(true);
+          }}
+          phoneNumber="+201234567890"
+        />
+      )}
+
+      {showCancelReservationModal && (
+        <CancelReservationModal
+          visible={showCancelReservationModal}
+          onClose={() => setShowCancelReservationModal(false)}
+          onConfirm={handleCancelReservationConfirm}
+          loading={cancelling}
+          reservationId={params.reservationNumber || reservationData?.tickets?.[0]?.reservationId}
+        />
+      )}
+
+      {showCancelTicketsModal && (
+        <CancelTicketsModal
+          visible={showCancelTicketsModal}
+          onClose={() => setShowCancelTicketsModal(false)}
+          passengers={passengers}
+          onConfirm={handleCancelTicketsConfirm}
+          loading={cancelling}
+          reservationId={params.reservationNumber || reservationData?.tickets?.[0]?.reservationId}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -530,6 +575,19 @@ const ETicketScreen = () => {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#edf3ff' },
   container: { flex: 1 },
+  cancelledBanner: {
+    backgroundColor: '#EF4444',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    gap: 8,
+  },
+  cancelledBannerText: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 14,
+    color: '#FFF',
+  },
   loadingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -607,7 +665,9 @@ const styles = StyleSheet.create({
   },
   tabButtonActive: { backgroundColor: '#cbdaf9', borderColor: '#6291e8' },
   tabButtonInactive: { backgroundColor: 'white', borderColor: '#e5e7eb' },
+  tabButtonCancelled: { backgroundColor: '#FEE2E2', borderColor: '#EF4444' },
   tabText: { fontFamily: 'Inter-Medium', fontSize: 14, color: 'black' },
+  tabTextCancelled: { color: '#EF4444' },
   section: { paddingHorizontal: 24, marginBottom: 24 },
   cardContainer: {
     backgroundColor: 'white',
@@ -631,9 +691,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
+  cardHeaderCancelled: {
+    backgroundColor: '#FEE2E2',
+  },
   cardHeaderLeft: { gap: 8, flex: 1 },
   passengerLabel: { fontFamily: 'Inter-Bold', fontSize: 12, color: '#888d9a' },
   passengerName: { fontFamily: 'Inter-Bold', fontSize: 20, fontWeight: 'bold', color: 'black' },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  statusText: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   logo: { width: 60, height: 60 },
   detailsContainer: {
     paddingHorizontal: 32,
@@ -655,6 +730,9 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: '#edf3ff',
     zIndex: 10,
+  },
+  ticketNotchCancelled: {
+    backgroundColor: '#FEE2E2',
   },
   notchLeft: { left: -30 },
   notchRight: { right: -30 },
@@ -765,7 +843,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#EF4444',
   },
-
 });
 
 export default ETicketScreen;

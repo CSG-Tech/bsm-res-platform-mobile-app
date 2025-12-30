@@ -1,5 +1,4 @@
-// components/otp/OTPVerificationModal.jsx
-import { Modal, ScrollView } from "react-native";
+import { Modal, Keyboard, KeyboardAvoidingView, Platform, TouchableWithoutFeedback } from "react-native";
 import styled from "styled-components/native";
 import { useState, useEffect } from "react";
 import { OTPInput, OTPActions, OTPTitle } from "./";
@@ -33,7 +32,6 @@ const OTPVerificationModal = ({
 
     setIsLoading(true);
     
-    // 🔸 MOCK: Just log the OTP
     console.log("✅ OTP Entered:", otpCode);
     
     setTimeout(() => {
@@ -50,52 +48,70 @@ const OTPVerificationModal = ({
     Toast.show({ type: "success", text1: "Code resent" });
   };
 
+  const handleOverlayPress = () => {
+    Keyboard.dismiss();
+    onClose();
+  };
+
+  const handleContentPress = () => {
+    // This prevents the overlay press from being triggered when pressing inside the modal
+  };
+
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <Overlay onPress={onClose}>
-        <Content onPress={(e) => e.stopPropagation()}>
-          <Handle />
-          
-          <Header>
-            <BackButton onPress={onClose}>←</BackButton>
-            <HeaderTitle>{title}</HeaderTitle>
-            <Spacer />
-          </Header>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <TouchableWithoutFeedback onPress={handleOverlayPress}>
+          <Overlay>
+            <TouchableWithoutFeedback onPress={handleContentPress}>
+              <Content>
+                <Handle />
+                
+                <Header>
+                  <BackButton onPress={onClose}>←</BackButton>
+                  <HeaderTitle>{title}</HeaderTitle>
+                  <Spacer />
+                </Header>
 
-          <OTPTitle phoneNumber={phoneNumber} />
+                <OTPTitle phoneNumber={phoneNumber} />
 
-          <OTPInput
-            length={6}
-            value={otpCode}
-            onChangeText={(text) => {
-              setOtpCode(text);
-              setHasError(false);
-            }}
-            disabled={isLoading}
-            hasError={hasError}
-          />
+                <OTPInput
+                  length={6}
+                  value={otpCode}
+                  onChangeText={(text) => {
+                    setOtpCode(text);
+                    setHasError(false);
+                  }}
+                  disabled={isLoading}
+                  hasError={hasError}
+                />
 
-          <OTPActions
-            hasError={hasError}
-            onResend={handleResend}
-            timer={timer}
-            onVerify={handleVerify}
-            isLoading={isLoading}
-            otpLength={otpCode.length}
-          />
-        </Content>
-      </Overlay>
+                <OTPActions
+                  hasError={hasError}
+                  onResend={handleResend}
+                  timer={timer}
+                  onVerify={handleVerify}
+                  isLoading={isLoading}
+                  otpLength={otpCode.length}
+                />
+              </Content>
+            </TouchableWithoutFeedback>
+          </Overlay>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
 
-const Overlay = styled.Pressable`
+const Overlay = styled.View`
   flex: 1;
   background-color: rgba(0, 0, 0, 0.5);
   justify-content: flex-end;
 `;
 
-const Content = styled.Pressable`
+const Content = styled.View`
   background-color: #ffffff;
   border-top-left-radius: 24px;
   border-top-right-radius: 24px;

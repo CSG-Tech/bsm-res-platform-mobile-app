@@ -8,6 +8,8 @@ import {
   StatusBar,
   Dimensions,
   Alert,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -272,7 +274,8 @@ export default function TicketsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" />
-
+      
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       {/* Background with decorative pattern */}
       <LinearGradient
         colors={['#1e3a6f', '#2b5a9e', '#4a7bc8']}
@@ -404,7 +407,8 @@ export default function TicketsScreen() {
             <Text style={styles.searchButtonText}>{t('findTickets.search')}</Text>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+        </LinearGradient>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }

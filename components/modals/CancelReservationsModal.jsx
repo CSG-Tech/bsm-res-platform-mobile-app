@@ -8,7 +8,10 @@ import {
   TouchableWithoutFeedback,
   ActivityIndicator,
   StyleSheet,
-  ScrollView
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { getCancellationPolicies } from '../../axios/services/cancellationService';
@@ -31,10 +34,17 @@ const CancelReservationModal = ({ visible, onClose, onConfirm, loading, reservat
     try {
       const response = await getCancellationPolicies(reservationId);
       console.log('Cancellation policy response:', response);
-      // Handle both response.data and direct response
-      setPolicy(response.data || response);
+      const policyData = response?.data || response;
+      
+      if (policyData && typeof policyData === 'object') {
+        setPolicy(policyData);
+      } else {
+        console.warn('No valid policy data received');
+        setPolicy(null);
+      }
     } catch (error) {
       console.error('Error fetching cancellation policy:', error);
+      setPolicy(null);
     } finally {
       setLoadingPolicy(false);
     }
@@ -46,109 +56,129 @@ const CancelReservationModal = ({ visible, onClose, onConfirm, loading, reservat
 
   const handleClose = () => {
     setReason('');
+    Keyboard.dismiss();
     onClose();
+  };
+
+  const handleOverlayPress = () => {
+    Keyboard.dismiss();
+    handleClose();
+  };
+
+  const handleContentPress = () => {
+    // Prevent overlay press from being triggered
   };
 
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <TouchableWithoutFeedback onPress={handleClose}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <View style={styles.content}>
-              <View style={styles.handle} />
-              
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <Text style={styles.title}>{t('eticket.cancelReservation')}</Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <TouchableWithoutFeedback onPress={handleOverlayPress}>
+          <View style={styles.overlay}>
+            <TouchableWithoutFeedback onPress={handleContentPress}>
+              <View style={styles.content}>
+                <View style={styles.handle} />
                 
-                {/* Warning */}
-                <View style={styles.warningBox}>
-                  <Ionicons name="warning-outline" size={20} color="#F59E0B" />
-                  <Text style={styles.warningText}>
-                    {t('eticket.cancelWarning')}
-                  </Text>
-                </View>
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  <Text style={styles.title}>{t('eticket.cancelReservation')}</Text>
+                  
+                  {/* Warning */}
+                  <View style={styles.warningBox}>
+                    <Ionicons name="warning-outline" size={20} color="#F59E0B" />
+                    <Text style={styles.warningText}>
+                      {t('eticket.cancelWarning')}
+                    </Text>
+                  </View>
 
-                {/* Cancellation Policy */}
-                {loadingPolicy ? (
-                  <ActivityIndicator color="#6291e8" style={{ marginVertical: 16 }} />
-                ) : policy ? (
-                  <View style={styles.policyBox}>
-                    <Text style={styles.policyTitle}>{t('eticket.cancellationPolicy')}</Text>
-                    
-                    {/* Policy Description (not translated) */}
-                    <Text style={styles.policyText}>{policy.policy?.description}</Text>
-                    
-                    {/* Refund Details */}
-                    <View style={styles.refundDetails}>
-                      <View style={styles.refundRow}>
-                        <Text style={styles.refundLabel}>{t('eticket.fullAmount')}:</Text>
-                        <Text style={styles.refundValue}>
-                          {policy.fullAmount} {policy.currency}
-                        </Text>
-                      </View>
+                  {/* Cancellation Policy */}
+                  {loadingPolicy ? (
+                    <ActivityIndicator color="#6291e8" style={{ marginVertical: 16 }} />
+                  ) : policy ? (
+                    <View style={styles.policyBox}>
+                      <Text style={styles.policyTitle}>{t('eticket.cancellationPolicy')}</Text>
                       
-                      <View style={styles.refundRow}>
-                        <Text style={styles.refundLabel}>{t('eticket.refundPercentage')}:</Text>
-                        <Text style={styles.refundValue}>{policy.refundPercentage}%</Text>
-                      </View>
-
-                      {policy.cancellationFee > 0 && (
+                      <Text style={styles.policyText}>{policy.policy?.description}</Text>
+                      
+                      {/* Refund Details */}
+                      <View style={styles.refundDetails}>
                         <View style={styles.refundRow}>
-                          <Text style={styles.refundLabel}>{t('eticket.cancellationFee')}:</Text>
-                          <Text style={[styles.refundValue, styles.feeValue]}>
-                            {policy.cancellationFee} {policy.currency}
+                          <Text style={styles.refundLabel}>{t('eticket.fullAmount')}:</Text>
+                          <Text style={styles.refundValue}>
+                            {policy.fullAmount} {policy.currency}
                           </Text>
                         </View>
-                      )}
+                        
+                        <View style={styles.refundRow}>
+                          <Text style={styles.refundLabel}>{t('eticket.refundPercentage')}:</Text>
+                          <Text style={styles.refundValue}>{policy.refundPercentage}%</Text>
+                        </View>
 
-                      <View style={[styles.refundRow, styles.totalRow]}>
-                        <Text style={styles.totalLabel}>{t('eticket.refundAmount')}:</Text>
-                        <Text style={styles.totalAmount}>
-                          {policy.refundableAmount} {policy.currency}
-                        </Text>
+                        {policy.cancellationFee > 0 && (
+                          <View style={styles.refundRow}>
+                            <Text style={styles.refundLabel}>{t('eticket.cancellationFee')}:</Text>
+                            <Text style={[styles.refundValue, styles.feeValue]}>
+                              {policy.cancellationFee} {policy.currency}
+                            </Text>
+                          </View>
+                        )}
+
+                        <View style={[styles.refundRow, styles.totalRow]}>
+                          <Text style={styles.totalLabel}>{t('eticket.refundAmount')}:</Text>
+                          <Text style={styles.totalAmount}>
+                            {policy.refundableAmount} {policy.currency}
+                          </Text>
+                        </View>
                       </View>
                     </View>
+                  ) : (
+                    <View style={styles.policyBox}>
+                      <Text style={styles.policyText}>
+                        {t('eticket.policyNotAvailable') || 'Cancellation policy information is not available at this time.'}
+                      </Text>
+                    </View>
+                  )}
+
+                  <Text style={styles.subtitle}>
+                    {t('eticket.provideReason')}
+                  </Text>
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder={t('eticket.enterReason')}
+                    value={reason}
+                    onChangeText={setReason}
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                  />
+
+                  <View style={styles.buttons}>
+                    <TouchableOpacity 
+                      style={styles.buttonSecondary}
+                      onPress={handleClose}
+                    >
+                      <Text style={styles.buttonTextSecondary}>{t('common.cancel')}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.buttonDanger}
+                      onPress={handleConfirm}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <ActivityIndicator color="#ffffff" />
+                      ) : (
+                        <Text style={styles.buttonTextWhite}>{t('eticket.confirmCancellation')}</Text>
+                      )}
+                    </TouchableOpacity>
                   </View>
-                ) : null}
-
-                <Text style={styles.subtitle}>
-                  {t('eticket.provideReason')}
-                </Text>
-
-                <TextInput
-                  style={styles.input}
-                  placeholder={t('eticket.enterReason')}
-                  value={reason}
-                  onChangeText={setReason}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                />
-
-                <View style={styles.buttons}>
-                  <TouchableOpacity 
-                    style={styles.buttonSecondary}
-                    onPress={handleClose}
-                  >
-                    <Text style={styles.buttonTextSecondary}>{t('common.cancel')}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.buttonDanger}
-                    onPress={handleConfirm}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="#ffffff" />
-                    ) : (
-                      <Text style={styles.buttonTextWhite}>{t('eticket.confirmCancellation')}</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            </View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
+                </ScrollView>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

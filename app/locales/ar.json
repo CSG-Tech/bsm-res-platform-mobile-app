@@ -219,7 +219,10 @@
     "fullAmount": "المبلغ الكامل",
     "refundPercentage": "نسبة الاسترداد",
     "cancellationFee": "رسوم الإلغاء",
-    "cannotCancelTitle": "لا يمكن الإلغاء"
+    "cannotCancelTitle": "لا يمكن الإلغاء",
+    "issued":"مصدرة",
+    "cancelled":"ملغاة",
+    "reservationCancelled": "هذا الحجز ملغي"
   },
   "paymentResult": {
     "successTitle": "تم الدفع بنجاح!",

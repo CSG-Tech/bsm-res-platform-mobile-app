@@ -225,8 +225,10 @@
     "fullAmount": "Full Amount",
     "refundPercentage": "Refund Percentage",
     "cancellationFee": "Cancellation Fee",
-    "cannotCancelTitle": "Cannot Cancel"
-
+    "cannotCancelTitle": "Cannot Cancel",
+    "issued": "Issued",
+    "cancelled":"Cancelled",
+    "reservationCancelled": "This reservation is cancelled"
   },
   "paymentResult": {
     "successTitle": "Payment Successful!",
