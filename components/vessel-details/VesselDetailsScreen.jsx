@@ -188,6 +188,7 @@ const styles = StyleSheet.create({
   },
   priceValue: {
     fontFamily: 'Cairo-Bold',
+    fontWeight: 'bold',
     color: '#6291e8',
     fontSize: 16,
   },
@@ -244,6 +245,7 @@ const styles = StyleSheet.create({
   },
   portName: {
     fontFamily: 'Cairo-Bold',
+    fontWeight: 'bold',
     fontSize: 16,
     color: 'black',
   },

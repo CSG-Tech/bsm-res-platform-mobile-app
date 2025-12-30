@@ -11,10 +11,10 @@ const TicketWidget = ({ children, style }) => {
   const HORIZONTAL_MARGIN = 32;
   const width = SCREEN_WIDTH - 32;
 
-  const height = 320;
+  const height = 338;
   const cornerRadius = 24;
   const cutoutRadius = 18;
-  const cutoutY = height * 0.33;
+  const cutoutY = height * 0.20;
 
   const shadowPadding = 20;
   const svgWidth = width + shadowPadding * 2;

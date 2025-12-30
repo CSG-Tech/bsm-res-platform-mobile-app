@@ -39,7 +39,7 @@ const REQUIRED_FIELDS = [
   "birthdate",
   "nationality",
   "birthplace",
-  "class",
+  "degree",
   "visaNumber",
   "visaType",
   "passportNumber",
