@@ -90,7 +90,7 @@ const TicketCard = ({ t, i18n, passengerName, ticketData, summaryData }) => {
     degree: i18n.language === 'ar' ? ticketData?.degree?.degreeArabName : ticketData?.degree?.degreeEnglishName, // Would need degree name lookup from degreeCode
     route: summaryData ? `${i18n.language === 'ar' ? summaryData.fromPortArab : summaryData.fromPortEng} - ${i18n.language === 'ar' ? summaryData.toPortArab : summaryData.toPortEng}` : '',
     passportNumber: ticketData?.passportNumber || '',
-    ticketNumber: ticketData?.oracleTicketNo || '',
+    ticketNumber: ticketData?.oraclePrintTicketNo || '',
     reservationNumber: ticketData?.oracleAgentResNo || ticketData?.oracleTicketNo || '',
   };
 console.log('Barcode value:', ticketData?.oraclePrintTicketNo);
