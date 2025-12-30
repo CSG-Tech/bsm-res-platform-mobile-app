@@ -33,7 +33,14 @@
     "gregorian": "ميلادي",
     "hijri": "هجري",
     "select":"اختر",
-    "close":"إغلاق"
+    "close":"إغلاق",
+    "seatsRemaining": "يتبقى {{count}} مقاعد فقط",
+    "quotaWarningTitle": "عدد المقاعد غير كافٍ",
+    "quotaWarningMessage": "لقد اخترت {{selected}} ركاب، ولكن المتاح فقط {{available}} مقاعد. هل ترغب في المتابعة؟",
+    "continueAnyway": "المتابعة رغم ذلك",
+    "noSeatsRemaining": "لا توجد مقاعد متاحة",
+    "noSeatsTitle": "مكتمل الحجز",
+    "noSeatsMessage": "هذه الرحلة مكتملة الحجز. يرجى اختيار تاريخ أو مركب آخر."
   },
   "passenger": {
     "modalTitle": "عدد الركاب",

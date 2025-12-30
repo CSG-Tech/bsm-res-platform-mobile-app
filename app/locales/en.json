@@ -33,7 +33,14 @@
     "gregorian": "Gregorian",
     "hijri": "Hijri",
     "select": "Select",
-    "close":"Close"
+    "close":"Close",
+    "seatsRemaining": "Only {{count}} seats remaining",
+    "quotaWarningTitle": "Insufficient Seats",
+    "quotaWarningMessage": "You selected {{selected}} passenger(s), but only {{available}} seats are available. Do you want to continue?",
+    "continueAnyway": "Continue Anyway",
+    "noSeatsRemaining": "No seats remaining",
+    "noSeatsTitle": "Fully Booked",
+    "noSeatsMessage": "This trip is fully booked. Please select another date or vessel."
   },
   "passenger": {
     "modalTitle": "Number of Passengers",
