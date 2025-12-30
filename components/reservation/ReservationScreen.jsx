@@ -89,6 +89,7 @@ const FloatingLabelSelect = ({
   fetchOptions,
   tripSerialForDegrees,
   renderItemLabel,
+  remainderQuota,
   styles,
 }) => {
   const { t, i18n } = useTranslation();
@@ -130,7 +131,12 @@ const FloatingLabelSelect = ({
   };
 
   const filtered = useMemo(() => {
-    if (!query) return items;
+    if (!query) {
+      return items.map(it => ({
+        ...it,
+        isDisabled: remainderQuota !== undefined && parseInt(it.remainingQuota || 0, 10) <= 0
+      }));
+    }
     const q = query.toLowerCase();
 
     return items.filter((it) => {
@@ -146,8 +152,11 @@ const FloatingLabelSelect = ({
         "";
 
       return String(labelText).toLowerCase().includes(q);
-    });
-  }, [items, query, i18n.language]);
+    }).map(it => ({
+      ...it,
+      isDisabled: remainderQuota !== undefined && (parseInt(it.remainingQuota) ?? 0) <= 0
+    }));
+  }, [items, query, i18n.language, remainderQuota]);
 
   return (
     <>
@@ -207,19 +216,29 @@ const FloatingLabelSelect = ({
                           item?.countryName ||
                           item?.label ||
                           "";
-
-                        return (
-                          <TouchableOpacity
-                            style={styles.modalItem}
-                            onPress={() => {
-                              onSelect(item);
-                              setOpen(false);
-                            }}
-                          >
-                            <Text style={styles.modalItemText}>{labelText}</Text>
-                          </TouchableOpacity>
-                        );
-                      }}
+                      return (
+                        <TouchableOpacity
+                          style={[
+                            styles.modalItem,
+                            item.isDisabled && styles.modalItemDisabled
+                          ]}
+                          onPress={() => {
+                            if (item.isDisabled) return;
+                            onSelect(item);
+                            setOpen(false);
+                          }}
+                          disabled={item.isDisabled}
+                        >
+                          <Text style={[
+                            styles.modalItemText,
+                            item.isDisabled && styles.modalItemTextDisabled
+                          ]}>
+                            {labelText}
+                            {item.isDisabled && ` (${t('reservation.noSeatsAvailable')})`}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    }}
                       ListEmptyComponent={
                         <Text style={styles.modalNoResults}>{t("reservation.noResults")}</Text>
                       }
@@ -392,6 +411,7 @@ const TravelDetailsSection = ({ passengerDetails, onInputChange, control, errors
           renderItemLabel={(it) =>
             i18n.language === "ar" ? it.degreeArabName : it.degreeEnglishName
           }
+          remainderQuota={true}
           styles={styles}
         />
           <FloatingLabelInput 
@@ -884,6 +904,13 @@ const getStyles = (isRTL) =>
       fontFamily: "Inter-Bold",
       fontSize: 18,
       color: "#092863",
+    },
+    modalItemDisabled: {
+      opacity: 0.4,
+      backgroundColor: "#f8f8f8",
+    },
+    modalItemTextDisabled: {
+      color: "#999",
     },
 });
 

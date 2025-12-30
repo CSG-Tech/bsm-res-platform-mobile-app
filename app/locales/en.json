@@ -107,7 +107,9 @@
       "search": "Search",
       "noResults": "No results found",
       "close": "Close",
-      "totalPrice": "Total Price"
+      "totalPrice": "Total Price",
+      "noSeatsAvailable": "No seats available"
+
     },
   "summary": {
     "headerTitle": "Booking Summary",

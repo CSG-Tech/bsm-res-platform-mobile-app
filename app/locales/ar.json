@@ -107,7 +107,8 @@
     "search": "بحث",
     "noResults": "لم يتم العثور على نتائج",
     "close": "إغلاق",
-    "totalPrice": "السعر الإجمالي"
+    "totalPrice": "السعر الإجمالي",
+    "noSeatsAvailable": "لا توجد مقاعد متاحة"
   },
     "summary": {
     "headerTitle": "ملخص الحجز",
