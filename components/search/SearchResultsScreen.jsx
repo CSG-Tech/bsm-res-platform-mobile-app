@@ -251,8 +251,7 @@ const SearchResultsScreen = () => {
       );
       return;
     }
-
-    if (!vessel.isAvailable && vessel.seatsRemaining < totalPassengers) {
+    if (!vessel.isAvailable || vessel.seatsRemaining < totalPassengers) {
       Alert.alert(
         t('searchResults.quotaWarningTitle'),
         t('searchResults.quotaWarningMessage', { 
@@ -375,7 +374,7 @@ const SearchResultsScreen = () => {
                   <TicketWidget key={index}>
                     <View style={styles.vesselCardHeader}>
                       <Text style={styles.vesselName}>{vessel.vesselName || 'N/A'}</Text>           
-                                          {!vessel.isAvailable && (
+                      { vessel.seatsRemaining < totalPassengers && (
                       <View style={[
                         styles.warningBanner,
                         vessel.seatsRemaining === 0 && styles.warningBannerError
