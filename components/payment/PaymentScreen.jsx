@@ -412,11 +412,11 @@ const [payment, setPayment] = useState('visa');
                 onPress={() => setSelectedPayment('card')}
               />
               <View style={styles.separator} />
-              <CustomRadioButton 
+              {/* <CustomRadioButton 
                 label={t('payment.reserve')}
                 selected={selectedPayment === 'reserve'}
                 onPress={() => setSelectedPayment('reserve')}
-              />
+              /> */}
             </View>
           </View>
           </View>

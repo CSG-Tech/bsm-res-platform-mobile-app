@@ -89,7 +89,7 @@
     "lastName": "اسم العائلة",
     "middleName": "الاسم الأوسط (اختياري)",
     "passengerType": "نوع المسافر",
-    "gender": "الجنس (اختياري)",
+    "gender": "الجنس",
     "birthdate": "تاريخ الميلاد",
     "travelDetails": "تفاصيل السفر",
     "nationality": "الجنسية",
@@ -111,6 +111,9 @@
     "close": "إغلاق",
     "totalPrice": "السعر الإجمالي",
     "noSeatsAvailable": "لا توجد مقاعد متاحة"
+    "duplicatePassport": "رقم جواز السفر هذا مستخدم بالفعل من راكب آخر",
+    "passportRequired": "رقم جواز السفر مطلوب",
+    "passportInvalid": "رقم جواز سفر غير صالح (6-9 أحرف كبيرة أو أرقام)"
   },
     "summary": {
     "headerTitle": "ملخص الحجز",

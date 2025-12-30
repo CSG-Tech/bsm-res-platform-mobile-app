@@ -3,9 +3,18 @@ import CalendarModal from '../calendar/CalendarModal';
 import { useState } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 
-const FloatingLabelDatePicker = ({ label, value, onChangeDate, styles }) => {
+const FloatingLabelDatePicker = ({ label, value, onChangeDate, styles, onFocus }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+
+  const [showPicker, setShowPicker] = useState(false);
+  
+  const handleOpen = () => {
+    if (onFocus) {
+      onFocus(); // Trigger scroll behavior
+    }
+    setShowPicker(true);
+  };
 
   return (
     <>

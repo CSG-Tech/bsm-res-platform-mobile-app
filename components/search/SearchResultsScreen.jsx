@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -13,6 +13,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import TicketWidget from '../../components/booking/TicketsWidget';
@@ -120,6 +121,7 @@ const SearchResultsScreen = () => {
   const [isLoadingTrips, setIsLoadingTrips] = useState(false);
   const [tripsData, setTripsData] = useState([]);
   const [calendarType, setCalendarType] = useState('gregorian');
+  const SCREEN_WIDTH = Dimensions.get('window').width;
 
   useEffect(() => {
     if (searchParams.passengers) {
@@ -282,13 +284,13 @@ const SearchResultsScreen = () => {
     setSelectedDate(dateOption.fullDate);
   };
 
-  const styles = getStyles(isRTL);
+  const styles = getStyles(isRTL, SCREEN_WIDTH, calendarType);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.screenHeader}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <BackArrow style={[styles.backArrowIcon, isRTL && { transform: [{ scaleX: -1 }] }]}/>
         </TouchableOpacity>
         <Text style={styles.screenTitle}>{t('searchResults.title')}</Text>
@@ -371,7 +373,8 @@ const SearchResultsScreen = () => {
               <ActivityIndicator size="large" color="#092863" />
             ) : vesselData.length > 0 ? (
               vesselData.map((vessel, index) => (
-                  <TicketWidget key={index}>
+                <TouchableOpacity key={index} onPress={() => handleTicketPress(vessel)}>
+                  <TicketWidget>
                     <View style={styles.vesselCardHeader}>
                       <Text style={styles.vesselName}>{vessel.vesselName || 'N/A'}</Text>           
                       { vessel.seatsRemaining < totalPassengers && (
@@ -425,14 +428,15 @@ const SearchResultsScreen = () => {
                             <Text style={styles.paxText}>{vessel.currencyPrint ? ` ${vessel.currencyPrint}` : ''}</Text>
                           </Text>
                         </View>
-                        <TouchableOpacity style={styles.selectButton} key={index} onPress={() => handleTicketPress(vessel)}>
+                        <View style={styles.selectButton}>
                           <Text style={styles.selectButtonText}>{t('searchResults.select')}</Text>
-                        </TouchableOpacity>
+                        </View>
                     </View> 
                   </TicketWidget>
+                </TouchableOpacity>
               ))
             ) : (
-              <Text>No trips available for the selected date.</Text>
+              <Text style={{ textAlign: isRTL ? 'right' : 'left' }}>{i18n.language === 'ar' ? 'لا توجد رحلات متاحة للتاريخ المحدد.' : 'No trips available for the selected date.'}</Text>
             )}
           </View>
         </View>
@@ -483,38 +487,40 @@ const SearchResultsScreen = () => {
   );
 };
 
-const getStyles = (isRTL) => StyleSheet.create({
+const getStyles = (isRTL, SCREEN_WIDTH, calendarType) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: 'white',
   },
-  screenHeader: {
-    flexDirection: isRTL ? 'row-reverse' : 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    backgroundColor: 'white',
-    borderBottomColor: '#f0f0f0',
-  },
-  backButton: {
-    width: 34,
-    height: 34,
-  },
-  backArrowIcon: {
-    width: 34,
-    height: 34,
-  },
-  screenTitle: {
-    fontFamily: 'Cairo-Bold',
-    fontSize: 18,
-    color: 'black',
-    textAlign: 'center',
-    flex: 1,
-    position: 'absolute',
-    left: 0,
-    right: 0,
-  },
+screenHeader: {
+  flexDirection: isRTL ? 'row-reverse' : 'row',
+  alignItems: 'center',
+  justifyContent: 'center',  // Center the container
+  paddingHorizontal: 24,
+  paddingVertical: 20,
+  backgroundColor: 'white',
+  borderBottomColor: '#f0f0f0',
+  position: 'relative',  // Add this for absolute positioning context
+},
+backButton: {
+  position: 'absolute',  // Position absolutely within header
+  [isRTL ? 'right' : 'left']: 24,  // Position based on direction
+  width: 44,
+  height: 44,
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 10,  // Ensure it's above title
+},
+backArrowIcon: {
+  width: 84,
+  height: 34,
+},
+screenTitle: {
+  fontFamily: 'Cairo-Bold',
+  fontSize: 18,
+  color: 'black',
+  textAlign: 'center',
+},
   scrollViewContent: {
     flexGrow: 1,
   },
@@ -531,6 +537,7 @@ const getStyles = (isRTL) => StyleSheet.create({
     flexDirection: isRTL ? 'row-reverse' : 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,  // ✅ Add consistent gap between elements
   },
   portName: {
     fontFamily: 'Cairo-Bold',
@@ -538,13 +545,14 @@ const getStyles = (isRTL) => StyleSheet.create({
     color: 'black',
     fontSize: 16,
     flex: 1,
-    textAlign: 'left',
+    textAlign: isRTL ? 'right' : 'left',  // ✅ Proper alignment for each direction
   },
   ferryRouteIcon: {
     width: 80,
     height: 37,
     resizeMode: 'contain',
-    marginHorizontal: 8,
+    marginHorizontal: 8,  // ✅ Keep some margin or remove if using gap
+    flexShrink: 0,  // ✅ Prevent icon from shrinking
   },
   passengerInfo: {
     fontFamily: 'Cairo-Medium',
@@ -597,22 +605,25 @@ const getStyles = (isRTL) => StyleSheet.create({
     alignItems: 'center',
     marginEnd: isRTL ? 0 : 12,
     marginStart: isRTL ? 12 : 0,
+    flexShrink: 0,  // ✅ Prevent calendar icon from shrinking
   },
   calendarIcon: {
     width: 23.6,
     height: 26.5,
     tintColor: 'white',
   },
-  dateButton: {
-    width: 73,
-    height: 73,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-    backgroundColor: 'white',
-    marginEnd: isRTL ? 0 : 12,
-    marginStart: isRTL ? 12 : 0,
-  },
+dateButton: {
+  width: isRTL && calendarType === 'hijri' ? 90 : 73,  // ✅ Wider for Arabic Hijri
+  height: 73,
+  justifyContent: 'center',
+  alignItems: 'center',
+  borderRadius: 8,
+  backgroundColor: 'white',
+  marginEnd: isRTL ? 0 : 12,
+  marginStart: isRTL ? 12 : 0,
+  paddingHorizontal: 6,  // ✅ More padding for longer text
+  flexShrink: 0,
+},
   selectedDateButton: {
     backgroundColor: '#BAD4FF',
   },
@@ -622,16 +633,20 @@ const getStyles = (isRTL) => StyleSheet.create({
     fontSize: 13,
     color: '#B6BDCF',
     marginBottom: 4,
+    numberOfLines: 1,  // ✅ Not directly applicable here, add to Text component
+    textAlign: 'center',  // ✅ Center the text
   },
   selectedDayText: {
     color: '#6291E8',
   },
-  dateText: {
-    fontFamily: 'Cairo-Bold',
-    fontWeight: 'bold',
-    fontSize: 16,
-    color: 'black',
-  },
+dateText: {
+  fontFamily: 'Cairo-Bold',
+  fontWeight: 'bold',
+  fontSize: isRTL && calendarType === 'hijri' ? 13 : 16,  // ✅ Smaller font for Hijri
+  color: 'black',
+  textAlign: 'center',
+  paddingHorizontal: 2,
+},
   selectedDateText: {
     color: '#092863',
   },
@@ -657,6 +672,7 @@ const getStyles = (isRTL) => StyleSheet.create({
     flexDirection: isRTL ? 'row-reverse' : 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: isRTL ? 0 : 8,
   },
   vesselName: {
     fontFamily: 'Cairo-Bold',
@@ -664,6 +680,8 @@ const getStyles = (isRTL) => StyleSheet.create({
     fontSize: 18,
     color: 'black',
     textAlign: isRTL ? 'right' : 'left',
+    marginTop: 8,
+    marginLeft: 20,
   },
   estPriceLabel: {
     fontFamily: 'Cairo-Regular',
@@ -680,7 +698,8 @@ const getStyles = (isRTL) => StyleSheet.create({
   priceDetails:{
     flexDirection: isRTL ? 'row-reverse' : 'row',
     justifyContent:'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
+    marginHorizontal: 20,
   },
   paxText: {
     fontSize: 16,
@@ -690,10 +709,14 @@ const getStyles = (isRTL) => StyleSheet.create({
     height: 1,
     backgroundColor: '#e7e5e5ff',
     marginVertical: 16,
+    width: SCREEN_WIDTH - 95,
+    marginLeft: isRTL ? 20 : 20,
+    // marginRight: isRTL ? 20 : 0,
   },
   vesselDetailsContainer: {
     flexDirection: isRTL ? 'row-reverse' : 'row',
     justifyContent: 'space-between',
+    marginHorizontal: 20,
   },
   portDetailColumn: {
     flex: 0.4,

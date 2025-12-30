@@ -69,9 +69,9 @@ const FailedBooking = () => {
           <TouchableOpacity style={styles.primaryButton} onPress={handleRetryPayment}>
             <Text style={styles.primaryButtonText}>{t('failedBooking.tryAgain')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton} onPress={handleRetryPayment}>
+          {/* <TouchableOpacity style={styles.secondaryButton} onPress={handleRetryPayment}>
             <Text style={styles.secondaryButtonText}>{t('failedBooking.changePaymentMethod')}</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
     </SafeAreaView>
