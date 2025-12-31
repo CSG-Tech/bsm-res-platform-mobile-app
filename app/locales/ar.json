@@ -222,7 +222,8 @@
     "cannotCancelTitle": "لا يمكن الإلغاء",
     "issued":"مصدرة",
     "cancelled":"ملغاة",
-    "reservationCancelled": "هذا الحجز ملغي"
+    "reservationCancelled": "هذا الحجز ملغي",
+    "policyNotAvailable":"سياسة الاسترداد غير متاحة"
   },
   "paymentResult": {
     "successTitle": "تم الدفع بنجاح!",

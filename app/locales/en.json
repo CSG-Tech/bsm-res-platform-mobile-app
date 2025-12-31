@@ -228,7 +228,8 @@
     "cannotCancelTitle": "Cannot Cancel",
     "issued": "Issued",
     "cancelled":"Cancelled",
-    "reservationCancelled": "This reservation is cancelled"
+    "reservationCancelled": "This reservation is cancelled",
+    "policyNotAvailable": "Policy not available."
   },
   "paymentResult": {
     "successTitle": "Payment Successful!",
