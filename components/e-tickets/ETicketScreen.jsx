@@ -289,7 +289,6 @@ const ETicketScreen = () => {
       
       Toast.show({ type: 'success', text1: t('eticket.reservationCancelledSuccess') });
       setShowCancelReservationModal(false);
-      router.back();
     } catch (error) {
       console.error('Cancel reservation error:', error);
       console.error('Error response:', error.response?.data);
@@ -337,7 +336,6 @@ const ETicketScreen = () => {
       
       Toast.show({ type: 'success', text1: t('eticket.ticketsCancelledSuccess') });
       setShowCancelTicketsModal(false);
-      router.back();
     } catch (error) {
       console.error('Cancel tickets error:', error);
       console.error('Error response:', error.response?.data);
