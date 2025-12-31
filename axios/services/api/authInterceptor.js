@@ -3,26 +3,64 @@ import Constants from 'expo-constants';
 import { clearTokens, getTokens, saveTokens } from '../../storage/tokenStorage';
 import { ENDPOINTS } from './endpoints';
 import { getOrCreateDeviceId } from '../../storage/deviceStorage';
-const { API_BASE_URL_DEV, API_BASE_URL_PROD } = Constants.expoConfig.extra;
 
+const { API_BASE_URL_DEV, API_BASE_URL_PROD } = Constants.expoConfig.extra;
 const baseURL = __DEV__ ? API_BASE_URL_DEV : API_BASE_URL_PROD;
+
+// Token waiting queue
+let tokenPromise = null;
+let tokenResolve = null;
+
+const waitForToken = () => {
+  if (!tokenPromise) {
+    tokenPromise = new Promise((resolve) => {
+      tokenResolve = resolve;
+    });
+  }
+  return tokenPromise;
+};
+
+// Call this when you successfully get/create a token
+export const notifyTokenReady = () => {
+  if (tokenResolve) {
+    tokenResolve();
+    tokenPromise = null;
+    tokenResolve = null;
+  }
+};
 
 export const attachAuthInterceptors = (api) => {
   console.log(`📡 Axios initialized with baseURL: ${baseURL}`);
+  
   // Add access token to all requests
   api.interceptors.request.use(async (config) => {
     let accessToken;
+    
     try {
       ({ accessToken } = await getTokens());
     } catch (e) {
       console.warn('Failed to get access token', e);
     }
+    
+    // If no token, wait for it
+    if (!accessToken) {
+      console.log('⏳ No token found, waiting for token...');
+      await waitForToken();
+      
+      // Try again after waiting
+      try {
+        ({ accessToken } = await getTokens());
+      } catch (e) {
+        console.warn('Failed to get access token after waiting', e);
+      }
+    }
+    
     if (accessToken) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
 
-    // Safe URL normalization for logging (do NOT write back to config.url)
+    // Safe URL normalization for logging
     try {
       const base = config.baseURL || baseURL || '';
       const u = config.url || '';
@@ -65,6 +103,9 @@ export const attachAuthInterceptors = (api) => {
 
           const newTokens = refreshResponse.data;
           await saveTokens(newTokens);
+          
+          // Notify that token is ready
+          notifyTokenReady();
 
           // Update token for retry
           api.defaults.headers.common.Authorization =
@@ -72,7 +113,6 @@ export const attachAuthInterceptors = (api) => {
           originalRequest.headers = originalRequest.headers || {};
           originalRequest.headers.Authorization =
             `Bearer ${newTokens.accessToken}`;
-
 
           return api(originalRequest);
         } catch (refreshErr) {

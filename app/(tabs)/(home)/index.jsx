@@ -3,9 +3,9 @@ import { ActivityIndicator, Text, View } from 'react-native';
 
 import { createGuestSession } from '../../../axios/services/authService';
 import { getTokens } from '../../../axios/storage/tokenStorage'; 
+import { notifyTokenReady } from '../../../axios/services/api/authInterceptor'; // ADD THIS
 import BookingScreen from '../../../components/booking/booking';
 
-// app/(tabs)/index.tsx
 export default function HomeScreen() {
   const [isSessionReady, setSessionReady] = useState(false);
 
@@ -16,10 +16,12 @@ export default function HomeScreen() {
         if (!tokens || !tokens.accessToken) {
           await createGuestSession();
         }
+        // Notify interceptor that token is ready
+        notifyTokenReady(); // ADD THIS
       } catch (error) {
         console.error('Failed to initialize user session:', error);
       } finally {
-        setSessionReady(true); // Always render BookingScreen after
+        setSessionReady(true);
       }
     };
     initializeSession();
@@ -27,10 +29,8 @@ export default function HomeScreen() {
 
   return (
     <>
-      {/* Always render BookingScreen immediately */}
       <BookingScreen />
       
-      {/* Overlay loading only */}
       {!isSessionReady && (
         <View style={{
           position: 'absolute',

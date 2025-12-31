@@ -2,12 +2,14 @@ import { getOrCreateDeviceId } from '../storage/deviceStorage';
 import { clearTokens, getTokens, saveTokens } from '../storage/tokenStorage';
 import api from './api/axiosConfig';
 import { ENDPOINTS } from './api/endpoints';
+import { notifyTokenReady } from '../services/api/authInterceptor';
 
 // 🔸 Guest session
 export const createGuestSession = async () => {
   const deviceId = await getOrCreateDeviceId();
   const res = await api.post(ENDPOINTS.AUTH.GUEST, { deviceId });
   await saveTokens(res.data);
+  notifyTokenReady(); // ADD THIS
   return res.data;
 };
 
