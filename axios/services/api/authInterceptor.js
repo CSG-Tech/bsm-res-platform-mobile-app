@@ -34,6 +34,10 @@ export const attachAuthInterceptors = (api) => {
   
   // Add access token to all requests
   api.interceptors.request.use(async (config) => {
+    // Skip if specified
+    if (config.skipAuthInterceptor) {
+      return config;
+    }
     let accessToken;
     
     try {

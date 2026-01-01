@@ -7,7 +7,10 @@ import { notifyTokenReady } from '../services/api/authInterceptor';
 // 🔸 Guest session
 export const createGuestSession = async () => {
   const deviceId = await getOrCreateDeviceId();
-  const res = await api.post(ENDPOINTS.AUTH.GUEST, { deviceId });
+  const res = await api.post(ENDPOINTS.AUTH.GUEST, 
+    { deviceId },
+    { skipAuthInterceptor: true }
+  );
   await saveTokens(res.data);
   notifyTokenReady(); // ADD THIS
   return res.data;
@@ -16,7 +19,10 @@ export const createGuestSession = async () => {
 // 🔸 Signup (new or guest upgrade)
 export const signup = async (payload) => {
   const deviceId = await getOrCreateDeviceId();
-  const res = await api.post(ENDPOINTS.AUTH.SIGNUP, { ...payload, deviceId });
+  const res = await api.post(ENDPOINTS.AUTH.SIGNUP, 
+    { ...payload, deviceId },
+    { skipAuthInterceptor: true }
+  );
   await saveTokens(res.data);
   return res.data;
 };
@@ -24,7 +30,10 @@ export const signup = async (payload) => {
 // 🔸 Login
 export const login = async (login, password) => {
   const deviceId = await getOrCreateDeviceId();
-  const res = await api.post(ENDPOINTS.AUTH.LOGIN, { login, password, deviceId });
+  const res = await api.post(ENDPOINTS.AUTH.LOGIN, 
+    { login, password, deviceId },
+    { skipAuthInterceptor: true }
+  );
   await saveTokens(res.data);
   return res.data;
 };
