@@ -59,6 +59,9 @@
     "copied": "تم النسخ",
     "copiedToClipboard": "تم النسخ إلى الحافظة"
   },
+  "error": {
+    "title": "خطأ"
+  },
   "navigation": {
     "home": "الرئيسية",
     "tickets": "التذاكر",
@@ -223,7 +226,12 @@
     "issued":"مصدرة",
     "cancelled":"ملغاة",
     "reservationCancelled": "هذا الحجز ملغي",
-    "policyNotAvailable":"سياسة الاسترداد غير متاحة"
+    "policyNotAvailable":"سياسة الاسترداد غير متاحة",
+    "cancellationSuccessTitle": "تم الإلغاء بنجاح",
+    "reservationCancelledSuccessMessage": "تم إلغاء حجزك بنجاح. سيتم معالجة الاسترداد قريبًا.",
+    "ticketsCancelledSuccessMessage": "تم إلغاء التذاكر المحددة بنجاح. سيتم معالجة الاسترداد قريبًا.",
+    "alreadyCancelledTitle": "تم الإلغاء مسبقًا",
+    "alreadyCancelledMessage": "تم إلغاء هذا الحجز أو التذكرة مسبقًا."
   },
   "paymentResult": {
     "successTitle": "تم الدفع بنجاح!",

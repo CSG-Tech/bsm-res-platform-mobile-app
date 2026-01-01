@@ -272,10 +272,6 @@ const ETicketScreen = () => {
   };
 
   const handleCancelReservationConfirm = async (reason) => {
-    if (!reason.trim()) {
-      Toast.show({ type: 'error', text1: t('eticket.reasonRequired') });
-      return;
-    }
     
     const resId = params.reservationNumber || reservationData?.tickets?.[0]?.reservationId;
     
@@ -287,13 +283,41 @@ const ETicketScreen = () => {
         refundType: 'full'
       });
       
-      Toast.show({ type: 'success', text1: t('eticket.reservationCancelledSuccess') });
+      // Close modal first
       setShowCancelReservationModal(false);
+      
+      // Show success alert
+      Alert.alert(
+        t('eticket.cancellationSuccessTitle'),
+        t('eticket.reservationCancelledSuccessMessage'),
+        [
+          {
+            text: t('common.ok'),
+            onPress: async () => {
+              // Refresh the reservation data
+              await refreshReservationData();
+            }
+          }
+        ],
+        { cancelable: false }
+      );
+      
     } catch (error) {
       console.error('Cancel reservation error:', error);
       console.error('Error response:', error.response?.data);
       
-      if (error.response?.status === 400) {
+      if (error.response?.status === 409) {
+        Alert.alert(
+          t('eticket.alreadyCancelledTitle'),
+          t('eticket.alreadyCancelledMessage'),
+          [
+            {
+              text: t('common.ok'),
+              onPress: () => setShowCancelReservationModal(false)
+            }
+          ]
+        );
+      } else if (error.response?.status === 400) {
         Alert.alert(
           t('eticket.cannotCancelTitle'),
           t('eticket.cannotCancelRefunded'),
@@ -310,10 +334,11 @@ const ETicketScreen = () => {
           || error.message 
           || t('eticket.cancellationFailed');
         
-        Toast.show({ 
-          type: 'error', 
-          text1: errorMessage 
-        });
+        Alert.alert(
+          t('error.title'),
+          errorMessage,
+          [{ text: t('common.ok') }]
+        );
       }
     } finally {
       setCancelling(false);
@@ -321,35 +346,44 @@ const ETicketScreen = () => {
   };
 
   const handleCancelTicketsConfirm = async (ticketIds, reason) => {
-    if (ticketIds.length === 0) {
-      Toast.show({ type: 'error', text1: t('eticket.selectTickets') });
-      return;
-    }
-    if (!reason.trim()) {
-      Toast.show({ type: 'error', text1: t('eticket.reasonRequired') });
-      return;
-    }
     
     setCancelling(true);
     try {
       await cancelTickets({ ticketIds, reason });
       
-      Toast.show({ type: 'success', text1: t('eticket.ticketsCancelledSuccess') });
+      // Close modal first
       setShowCancelTicketsModal(false);
+      
+      // Show success alert
+      Alert.alert(
+        t('eticket.cancellationSuccessTitle'),
+        t('eticket.ticketsCancelledSuccessMessage'),
+        [
+          {
+            text: t('common.ok'),
+            onPress: async () => {
+              // Refresh the reservation data
+              await refreshReservationData();
+            }
+          }
+        ],
+        { cancelable: false }
+      );
+      
     } catch (error) {
       console.error('Cancel tickets error:', error);
-      console.error('Error response:', error.response?.data);
       
-      if (error.response?.status === 400) {
+      if (error.response?.status === 409) {
+        Alert.alert(
+          t('eticket.alreadyCancelledTitle'),
+          t('eticket.alreadyCancelledMessage'),
+          [{ text: t('common.ok'), onPress: () => setShowCancelTicketsModal(false) }]
+        );
+      } else if (error.response?.status === 400) {
         Alert.alert(
           t('eticket.cannotCancelTitle'),
           t('eticket.cannotCancelRefunded'),
-          [
-            {
-              text: t('common.ok'),
-              onPress: () => setShowCancelTicketsModal(false)
-            }
-          ]
+          [{ text: t('common.ok'), onPress: () => setShowCancelTicketsModal(false) }]
         );
       } else {
         const errorMessage = error.response?.data?.message 
@@ -357,16 +391,51 @@ const ETicketScreen = () => {
           || error.message 
           || t('eticket.cancellationFailed');
         
-        Toast.show({ 
-          type: 'error', 
-          text1: errorMessage 
-        });
+        Alert.alert(
+          t('error.title'),
+          errorMessage,
+          [{ text: t('common.ok') }]
+        );
       }
     } finally {
       setCancelling(false);
     }
   };
 
+  // Add this refresh function
+  const refreshReservationData = async () => {
+    try {
+      setLoading(true);
+      
+      const searchObject = {
+        lastName: params.lastName || '',
+        passportNumber: params.passportNumber || '',
+        reservationId: params.reservationNumber || '',
+      };
+
+      const response = await getReservation(searchObject);
+
+      if (!response || !response.tickets || response.tickets.length === 0) {
+        setNoResults(true);
+        setPassengers([]);
+        return;
+      }
+
+      setReservationData(response);
+
+      const formattedPassengers = response.tickets.map((ticket, index) => ({
+        id: ticket.id,
+        name: ticket.passengerName || `${ticket.passengerFirstName} ${ticket.passengerLastName}`,
+        label: t('eticket.passenger', { num: index + 1 }),
+        ticketData: ticket,
+      }));
+      setPassengers(formattedPassengers);
+    } catch (err) {
+      console.error('Error refreshing reservation:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
   const currentPassenger = passengers[selectedPassengerIndex];
   const currentPassengerName = currentPassenger?.name || "Passenger";
   const currentTicketData = currentPassenger?.ticketData;

@@ -59,6 +59,9 @@
     "copied": "Copied",
     "copiedToClipboard": "Copied to clipboard"
   },
+  "error": {
+    "title": "Error"
+  },
   "navigation": {
     "home": "Home",
     "tickets": "Tickets",
@@ -229,7 +232,12 @@
     "issued": "Issued",
     "cancelled":"Cancelled",
     "reservationCancelled": "This reservation is cancelled",
-    "policyNotAvailable": "Policy not available."
+    "policyNotAvailable": "Policy not available.",
+    "cancellationSuccessTitle": "Cancellation Successful",
+    "reservationCancelledSuccessMessage": "Your reservation has been cancelled successfully. A refund will be processed shortly.",
+    "ticketsCancelledSuccessMessage": "Selected tickets have been cancelled successfully. A refund will be processed shortly.",
+    "alreadyCancelledTitle": "Already Cancelled",
+    "alreadyCancelledMessage": "This reservation or ticket has already been cancelled."
   },
   "paymentResult": {
     "successTitle": "Payment Successful!",
