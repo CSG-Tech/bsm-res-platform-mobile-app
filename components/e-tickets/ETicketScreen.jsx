@@ -210,6 +210,39 @@ const ETicketScreen = () => {
           ticketData: ticket,
         }));
         setPassengers(formattedPassengers);
+        // 🎯 AUTO-SELECT THE PASSENGER THAT MATCHES SEARCH CRITERIA
+        const searchPassportNumber = params.passportNumber?.toLowerCase().trim();
+        const searchLastName = params.lastName?.toLowerCase().trim();
+
+        if (searchPassportNumber || searchLastName) {
+          const matchingIndex = formattedPassengers.findIndex((passenger) => {
+            const ticketPassport = passenger.ticketData?.passportNumber?.toLowerCase().trim();
+            const ticketLastName = passenger.ticketData?.passengerLastName?.toLowerCase().trim();
+            const ticketFullName = passenger.name?.toLowerCase().trim();
+
+            // Check if passport matches
+            if (searchPassportNumber && ticketPassport === searchPassportNumber) {
+              return true;
+            }
+
+            // Check if last name matches
+            if (searchLastName && (
+              ticketLastName === searchLastName || 
+              ticketFullName?.includes(searchLastName)
+            )) {
+              return true;
+            }
+
+            return false;
+          });
+
+          // If found, select that passenger
+          if (matchingIndex !== -1) {
+            console.log(`Auto-selecting passenger at index ${matchingIndex}`);
+            setSelectedPassengerIndex(matchingIndex);
+          }
+        }
+
       } catch (err) {
         console.error('Error fetching reservation:', err);
         if(err.response && err.response.status === 404) {
