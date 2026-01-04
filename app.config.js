@@ -42,7 +42,7 @@ export default {
       API_BASE_URL_DEV: process.env.API_BASE_URL_DEV,
       API_BASE_URL_PROD: process.env.API_BASE_URL_PROD,
       eas:{
-        projectId: '542458d8-069a-44b1-9885-28e6b025c992'
+        projectId: '0410ea4c-db3f-4cad-9ebf-37cde58af68b'
       }
     },
   },
