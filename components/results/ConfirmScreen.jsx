@@ -247,7 +247,7 @@ const ConfirmationScreen = () => {
               <DetailCard title={t('confirmation.transactionDetails')}>
                 <DetailRow label={t('confirmation.reservationNumber')} value={reservation.oracleResNo?.toString() || reservation.id?.toString()} showCopy />
                 {/* <DetailRow label={t('confirmation.paymentId')} value={reservation.paymentIntent?.toString()} showCopy /> */}
-                <DetailRow label={t('confirmation.paymentMethod')} value={reservation.paymentProvider || 'N/A'} />
+                <DetailRow label={t('confirmation.paymentMethod')} value={t('confirmation.' + reservation.payments[0]?.paymentMethod) || 'Processing'} />
                 <DetailRow label={t('confirmation.paymentState')} value={paymentStatus} />
                 <DetailRow label={t('confirmation.totalPrice')} value={`${currency} ${totalAmount.toFixed(2)}`} />
               </DetailCard>
@@ -280,26 +280,6 @@ const ConfirmationScreen = () => {
               </DetailCard>
               
               <View style={styles.detailsSeparator} />
-
-              {/* <DetailCard title={t('confirmation.contactDetails')}>
-                {tickets.length > 0 && (
-                  <>
-                    <Text style={[styles.detailLabel, { marginBottom: 8, textAlign: isRTL ? 'right' : 'left' }]}>
-                      {tickets[0].firstNameEng || tickets[0].firstNameArab} {tickets[0].lastNameEng || tickets[0].lastNameArab}
-                    </Text>
-                    {reservation.user?.email && (
-                      <Text style={[styles.detailLabel, { marginBottom: 8, textAlign: isRTL ? 'right' : 'left' }]}>
-                        {reservation.user.email}
-                      </Text>
-                    )}
-                    {tickets[0].mobileNo && (
-                      <Text style={[styles.detailLabel, { marginBottom: 8, textAlign: isRTL ? 'right' : 'left' }]}>
-                        {tickets[0].mobileNo}
-                      </Text>
-                    )}
-                  </>
-                )}
-              </DetailCard> */}
             </View>
           </View>
         </ScrollView>

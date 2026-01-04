@@ -268,7 +268,13 @@
     "passenger": "الراكب",
     "pnr": "PNR",
     "contactDetails": "بيانات الاتصال",
-    "backToMain": "العودة إلى الصفحة الرئيسية"
+    "backToMain": "العودة إلى الصفحة الرئيسية",
+    "creditcard": "Credit Card",
+    "applepay": "Apple Pay",
+    "samsungpay": "Samsung Pay",
+    "mada":"Mada",
+    "americanexpress": "American Express"
+
   },
   "failedBooking": {
     "headerTitle": "تفاصيل المعاملة",

@@ -280,7 +280,12 @@
     "passenger": "Passenger",
     "pnr": "PNR",
     "contactDetails": "Contact Details",
-    "backToMain": "Back to Main Page"
+    "backToMain": "Back to Main Page",
+    "creditcard": "Credit Card",
+    "applepay": "Apple Pay",
+    "samsungpay": "Samsung Pay",
+    "mada":"Mada",
+    "americanexpress": "American Express"
   },
   "failedBooking": {
     "headerTitle": "Transaction Details",
