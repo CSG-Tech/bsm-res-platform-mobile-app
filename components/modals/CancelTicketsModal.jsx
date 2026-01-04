@@ -23,7 +23,7 @@ const CancelTicketsModal = ({ visible, onClose, onConfirm, passengers = [], load
   const [selectedTicketIds, setSelectedTicketIds] = useState([]);
   const [policy, setPolicy] = useState(null);
   const [loadingPolicy, setLoadingPolicy] = useState(false);
-
+  const [error, setError] = useState('');
   useEffect(() => {
     if (visible && reservationId) {
       fetchCancellationPolicy();
@@ -56,18 +56,31 @@ const CancelTicketsModal = ({ visible, onClose, onConfirm, passengers = [], load
         ? prev.filter(id => id !== ticketId)
         : [...prev, ticketId]
     );
+    if (error) setError(''); // Clear error on selection change
   };
 
   const handleConfirm = () => {
-    onConfirm(selectedTicketIds, reason);
+      // Validate in modal
+      if (selectedTicketIds.length === 0) {
+        setError(t('eticket.selectTickets'));
+        return;
+      }
+      if (!reason.trim()) {
+        setError(t('eticket.reasonRequired'));
+        return;
+      }
+      
+      setError(''); // Clear error
+      onConfirm(selectedTicketIds, reason);
   };
 
-  const handleClose = () => {
-    setReason('');
-    setSelectedTicketIds([]);
-    Keyboard.dismiss();
-    onClose();
-  };
+    const handleClose = () => {
+      setReason('');
+      setSelectedTicketIds([]);
+      setError(''); // Clear error
+      Keyboard.dismiss();
+      onClose();
+    };
 
   const handleOverlayPress = () => {
     Keyboard.dismiss();
@@ -174,7 +187,12 @@ const CancelTicketsModal = ({ visible, onClose, onConfirm, passengers = [], load
                   numberOfLines={3}
                   textAlignVertical="top"
                 />
-
+                {error ? (
+                  <View style={styles.errorBox}>
+                    <Ionicons name="alert-circle" size={16} color="#EF4444" />
+                    <Text style={styles.errorText}>{error}</Text>
+                  </View>
+                ) : null}
                 <View style={styles.buttons}>
                   <TouchableOpacity 
                     style={styles.buttonSecondary}
@@ -335,6 +353,25 @@ const styles = StyleSheet.create({
     color: '#000000',
     minHeight: 80,
     marginBottom: 24,
+  },
+    inputError: {
+    borderColor: '#EF4444',
+    borderWidth: 2,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    gap: 8,
+  },
+  errorText: {
+    flex: 1,
+    fontFamily: 'Inter-Regular',
+    fontSize: 13,
+    color: '#EF4444',
   },
   buttons: {
     flexDirection: 'row',

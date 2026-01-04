@@ -22,10 +22,12 @@ const CancelReservationModal = ({ visible, onClose, onConfirm, loading, reservat
   const [reason, setReason] = useState('');
   const [policy, setPolicy] = useState(null);
   const [loadingPolicy, setLoadingPolicy] = useState(false);
+  const [error, setError] = useState(''); // Add error state
 
   useEffect(() => {
     if (visible && reservationId) {
       fetchCancellationPolicy();
+      setError(''); // Clear error when modal opens
     }
   }, [visible, reservationId]);
 
@@ -51,11 +53,19 @@ const CancelReservationModal = ({ visible, onClose, onConfirm, loading, reservat
   };
 
   const handleConfirm = () => {
+    // Validate in modal
+    if (!reason.trim()) {
+      setError(t('eticket.reasonRequired'));
+      return;
+    }
+    
+    setError(''); // Clear error
     onConfirm(reason);
   };
 
   const handleClose = () => {
     setReason('');
+    setError(''); // Clear error on close
     Keyboard.dismiss();
     onClose();
   };
@@ -145,19 +155,34 @@ const CancelReservationModal = ({ visible, onClose, onConfirm, loading, reservat
                   </Text>
 
                   <TextInput
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      error ? styles.inputError : null
+                    ]}
                     placeholder={t('eticket.enterReason')}
                     value={reason}
-                    onChangeText={setReason}
+                    onChangeText={(text) => {
+                      setReason(text);
+                      if (error) setError(''); // Clear error on typing
+                    }}
                     multiline
                     numberOfLines={4}
                     textAlignVertical="top"
                   />
 
+                  {/* Error message */}
+                  {error ? (
+                    <View style={styles.errorBox}>
+                      <Ionicons name="alert-circle" size={16} color="#EF4444" />
+                      <Text style={styles.errorText}>{error}</Text>
+                    </View>
+                  ) : null}
+
                   <View style={styles.buttons}>
                     <TouchableOpacity 
                       style={styles.buttonSecondary}
                       onPress={handleClose}
+                      disabled={loading}
                     >
                       <Text style={styles.buttonTextSecondary}>{t('common.cancel')}</Text>
                     </TouchableOpacity>
@@ -305,6 +330,25 @@ const styles = StyleSheet.create({
     color: '#000000',
     minHeight: 100,
     marginBottom: 24,
+  },
+  inputError: {
+    borderColor: '#EF4444',
+    borderWidth: 2,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    gap: 8,
+  },
+  errorText: {
+    flex: 1,
+    fontFamily: 'Inter-Regular',
+    fontSize: 13,
+    color: '#EF4444',
   },
   buttons: {
     flexDirection: 'row',
