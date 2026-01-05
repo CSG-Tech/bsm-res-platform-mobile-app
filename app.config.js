@@ -33,7 +33,7 @@ export default {
       [
         'expo-notifications',
         {
-          "icon": './assets/Logo.png',
+          "icon": './assets/icon-logo.png',
           "color": "#000000"
         }
       ],
@@ -41,6 +41,8 @@ export default {
     android: {
       useNextNotificationsApi: true,
       package: "com.bassamshippingsa.bassambooking",
+      "usesCleartextTraffic": true,
+      "networkSecurityConfig": "./network_security_config.xml"
     },
     ios: {
       supportsTablet: true,
@@ -48,8 +50,9 @@ export default {
       usesAppleSignIn: true
     },
     extra: {
-      API_BASE_URL_DEV: process.env.API_BASE_URL_DEV,
-      API_BASE_URL_PROD: process.env.API_BASE_URL_PROD,
+      API_BASE_URL_DEV: "https://csg-server-apps.maxapex.net:7000/api",
+      API_BASE_URL_PROD: "https://csg-server-apps.maxapex.net:7000/api",
+      EXPO_PUBLIC_API_URL: "https://csg-server-apps.maxapex.net:7000",
       eas:{
         projectId: '0410ea4c-db3f-4cad-9ebf-37cde58af68b'
       }

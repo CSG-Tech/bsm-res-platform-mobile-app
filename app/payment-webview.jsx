@@ -161,7 +161,7 @@ const PaymentWebViewScreen = () => {
       </SafeAreaView>
     );
   }
-
+  const API_URL = "https://csg-server-apps.maxapex.net:7000";
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="white" />
@@ -186,7 +186,7 @@ const PaymentWebViewScreen = () => {
         {/* WebView - Pass token in URL */}
         <WebView
           ref={webViewRef}
-          source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}/payment.html?token=${token}&lang=${i18n.language}` }}
+          source={{ uri: `${API_URL}/payment.html?token=${token}&lang=${i18n.language}` }}
           onMessage={handleWebViewMessage}
           onLoadEnd={() => setLoading(false)}
           onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
