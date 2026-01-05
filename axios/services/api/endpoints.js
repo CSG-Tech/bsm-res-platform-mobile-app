@@ -66,5 +66,11 @@ export const ENDPOINTS = {
   UPGRADE: {
     GET_OPTIONS: (ticketId) => `/reservations/tickets/${ticketId}/available-degrees`,
     UPGRADE_TICKET: '/reservations/tickets/change-degree',
+  },
+  OTP: {
+    GENERATE: '/otp/generate',
+    VERIFY: '/otp/verify',
+    RESEND: '/otp/resend',
+    GET_EMAIL: '/otp/reservation/email',
   }
 };

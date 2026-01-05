@@ -1,47 +1,60 @@
 import styled from "styled-components/native";
+import { TouchableOpacity } from "react-native";
 
-const OTPTitle = ({ phoneNumber, onChangePhone }) => {
+const OTPTitle = ({ email = "", showChangeEmail = true }) => {
+  const handleChangeEmail = () => {
+    // TODO: Implement email change modal
+    console.log("Change email clicked");
+  };
+
   return (
-    <>
-      <Title>Enter 6-Digit Code</Title>
-      <DescriptionContainer>
-        <Description>
-          A verification code has been sent to {phoneNumber}{" "}
-        </Description>
-        <ChangePhoneButton onPress={onChangePhone}>
-          <ChangePhoneText>Change phone number</ChangePhoneText>
-        </ChangePhoneButton>
-      </DescriptionContainer>
-    </>
+    <Container>
+      <Title>Enter Verification Code</Title>
+      <Description>
+        We sent a 6-digit code to{"\n"}
+        <EmailText>{email}</EmailText>
+      </Description>
+      {showChangeEmail && (
+        <TouchableOpacity onPress={handleChangeEmail}>
+          <ChangeEmailText>Change email</ChangeEmailText>
+        </TouchableOpacity>
+      )}
+    </Container>
   );
 };
 
-const Title = styled.Text`
-  font-size: 20px;
-  font-weight: 700;
-  color: #000000;
-  margin-bottom: 12px;
+const Container = styled.View`
+  margin-bottom: 32px;
+  align-items: center;
 `;
 
-const DescriptionContainer = styled.View`
-  margin-bottom: 32px;
+const Title = styled.Text`
+  font-size: 20px;
+  font-weight: 600;
+  color: #000;
+  margin-bottom: 12px;
+  font-family: 'Inter-Bold';
 `;
 
 const Description = styled.Text`
   font-size: 14px;
-  color: #6b7280;
+  color: #666;
+  text-align: center;
   line-height: 20px;
+  font-family: 'Inter-Regular';
 `;
 
-const ChangePhoneButton = styled.TouchableOpacity`
-  align-self: flex-start;
-  margin-top: 4px;
+const EmailText = styled.Text`
+  font-weight: 600;
+  color: #007bff;
+  font-family: 'Inter-SemiBold';
 `;
 
-const ChangePhoneText = styled.Text`
+const ChangeEmailText = styled.Text`
   font-size: 14px;
-  color: #93c5fd;
-  text-decoration-line: underline;
+  color: #007bff;
+  margin-top: 8px;
+  font-family: 'Inter-SemiBold';
 `;
 
 export default OTPTitle;

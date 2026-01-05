@@ -29,6 +29,7 @@ import { cancelReservation, cancelTickets, getCancellationPolicies } from '../..
 import CancelReservationModal from '../modals/CancelReservationsModal';
 import CancelTicketsModal from '../modals/CancelTicketsModal';
 import Toast from 'react-native-toast-message';
+import { getReservationEmail } from '../../axios/services/otpService';
 
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -166,11 +167,26 @@ const ETicketScreen = () => {
   const [noResults, setNoResults] = useState(false);
   const menuButtonRef = useRef(null);
   const [showOTP, setShowOTP] = useState(false);
+  const [showTicketCancelOTP, setShowTicketCancelOTP] = useState(false);
   const [showCancelReservationModal, setShowCancelReservationModal] = useState(false);
   const [showCancelTicketsModal, setShowCancelTicketsModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [selectedTicketIds, setSelectedTicketIds] = useState([]);
   const [cancelling, setCancelling] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+
+  // Fetch user email on component mount
+
+    const fetchUserEmail = async () => {
+      try {
+        const userInfo = await getReservationEmail(params.reservationNumber);
+        if (userInfo?.email) {
+          setUserEmail(userInfo.email);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user email:', error);
+      }
+    };
 
 
   useEffect(() => {
@@ -257,6 +273,7 @@ const ETicketScreen = () => {
     };
 
     fetchReservationData();
+    fetchUserEmail();
   }, [params.lastName, params.passportNumber, params.reservationNumber, t]);
 
   // Check if reservation is cancelled
@@ -624,7 +641,7 @@ const ETicketScreen = () => {
               </TouchableOpacity>
               <TouchableOpacity style={styles.menuItem} onPress={() => {
                 setMenuVisible(false); 
-                setShowCancelTicketsModal(true);
+                setShowTicketCancelOTP(true);
               }}>
                 <Text style={[styles.menuText, styles.cancelText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
                   {t('eticket.cancelTickets')}
@@ -644,7 +661,24 @@ const ETicketScreen = () => {
             setShowOTP(false);
             setShowCancelReservationModal(true);
           }}
-          phoneNumber="+201234567890"
+          reservationId={params.reservationNumber || reservationData?.tickets?.[0]?.reservationId}
+          purpose="CANCEL_RESERVATION"
+          initialEmail={userEmail} // Pass email from user info
+        />
+      )}
+
+      {showTicketCancelOTP && (
+        <OTPVerificationModal
+          visible={showTicketCancelOTP}
+          onClose={() => setShowTicketCancelOTP(false)}
+          onSuccess={() => {
+            console.log("OTP Success for ticket cancellation!");
+            setShowTicketCancelOTP(false);
+            setShowCancelTicketsModal(true);
+          }}
+          reservationId={params.reservationNumber || reservationData?.tickets?.[0]?.reservationId}
+          purpose="CANCEL_TICKETS"
+          initialEmail={userEmail}
         />
       )}
 
