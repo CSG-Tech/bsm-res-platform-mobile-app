@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Copy } from 'lucide-react-native';
+import { ArrowLeft, Copy, Share2 } from 'lucide-react-native'; // Import Share2
 import { Trans, useTranslation } from 'react-i18next';
 import {
   I18nManager,
@@ -12,6 +12,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useEffect, useRef, useState } from 'react'; 
+
+import * as Print from 'expo-print';
+import { Asset } from 'expo-asset';
+import * as FileSystem from 'expo-file-system/legacy';
+
 
 const DetailCard = ({ title, children }) => (
   <View style={styles.card}>
@@ -34,11 +40,143 @@ const DetailRow = ({ label, value, valueStyle, showCopy = false, children }) => 
   </View>
 );
 
+const generateShareableHtml = ({
+  t, language, isRTL, vesselName, pricePerPax, fromPort, toPort, passengers,
+  subtotal, taxes, totalPrice, currency, assets
+}) => {
+  const transactionDetails = `
+    <h3 style="font-size: 16px; font-weight: bold; color: black; margin-bottom: 16px;">${t('confirmation.transactionDetails')}</h3>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 16px;"><span style="font-size: 16px; color: black;">${t('confirmation.reservationNumber')}</span> <span style="font-size: 14px; font-weight: bold;">1234567890123</span></div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 16px;"><span style="font-size: 16px; color: black;">${t('confirmation.paymentMethod')}</span> <span style="font-size: 14px; font-weight: bold;">MasterCard(0123)</span></div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 16px;"><span style="font-size: 16px; color: black;">${t('confirmation.paymentState')}</span> <span style="font-size: 14px; font-weight: bold;">Complete</span></div>
+    <div style="display: flex; justify-content: space-between;"><span style="font-size: 16px; color: black;">${t('confirmation.totalPrice')}</span> <span style="font-size: 14px; font-weight: bold;">${currency}${totalPrice.toFixed(2)}</span></div>
+  `;
+
+  const priceDetails = `
+    <h3 style="font-size: 16px; font-weight: bold; color: black; margin-bottom: 16px;">${t('confirmation.priceDetails')}</h3>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 16px;"><span style="font-size: 16px; color: black;">${t('confirmation.adultEconomy', { count: passengers.length })}</span> <span style="font-size: 14px; font-weight: bold;">${currency}${subtotal.toFixed(2)}</span></div>
+    <div style="margin-bottom: 12px;"></div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 16px;"><span style="font-size: 16px; color: black;">${t('confirmation.subtotal')}</span> <span style="font-size: 14px; font-weight: bold;">${currency}${subtotal.toFixed(2)}</span></div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 16px;"><span style="font-size: 16px; color: black;">${t('confirmation.taxes')}</span> <span style="font-size: 14px; font-weight: bold;">${currency}${taxes.toFixed(2)}</span></div>
+    <div style="display: flex; justify-content: space-between;"><span style="font-size: 16px; font-weight: bold; color: black;">${t('confirmation.total')}</span> <span style="font-size: 16px; font-weight: bold;">${currency}${totalPrice.toFixed(2)}</span></div>
+  `;
+  
+  const passengerRows = passengers.map(p => `
+    <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+      <span style="font-size: 16px; color: black;">${p.firstName} ${p.lastName}</span>
+      <span style="font-size: 14px; font-weight: bold;">ABC012</span>
+    </div>
+  `).join('');
+
+  return `
+    <!DOCTYPE html>
+    <html lang="${language}" dir="${isRTL ? 'rtl' : 'ltr'}">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${t('confirmation.headerTitle')}</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #edf3ff; margin: 0; padding: 20px; }
+        .ticket-container { margin: auto; max-width: 600px; margin-bottom: 24px; background-color: white; border-radius: 16px; position: relative; box-shadow: 0 8px 25px rgba(154, 189, 255, 0.25); }
+        .details-widget { margin: auto; max-width: 600px; background-color: white; border-radius: 16px; box-shadow: 0 4px 15px rgba(216, 228, 246, 0.7); }
+        .content { padding: 24px; }
+        .separator { height: 1px; background-color: #f0f0f0; margin: 16px 0; }
+        .details-separator { height: 1px; background-color: #f0f0f0; margin: 0 24px; }
+        .ticket-header { display: flex; justify-content: space-between; align-items: center; }
+        .vessel-name { font-size: 18px; font-weight: bold; color: black; }
+        .price-info { text-align: ${isRTL ? 'left' : 'right'}; }
+        .vessel-details { display: flex; justify-content: space-between; align-items: flex-start; }
+        .port-column { flex: 0.4; }
+        .route-column { flex: 0.2; text-align: center; padding-top: 30px; }
+        .badge { display: inline-flex; align-items: center; background-color: #EDF3FF; border-radius: 20px; padding: 4px 12px; font-size: 13px; color: #5C7096; }
+        .badge img { width: 16px; height: 16px; margin-right: 8px; vertical-align: middle; }
+        .port-name { font-size: 16px; font-weight: bold; margin-top: 8px; }
+        .date-time { font-size: 14px; line-height: 1.4; }
+      </style>
+    </head>
+    <body>
+      <div class="ticket-container">
+        <div class="content">
+          <div class="ticket-header">
+            <div class="vessel-name">${vesselName}</div>
+            <div class="price-info">
+              <div style="font-size: 15px; color: #7E92B9;">${t('confirmation.estPrice')}</div>
+              <div><span style="font-weight: bold; color: #6291E8; font-size: 18px;">${currency}${pricePerPax.toFixed(2)}</span><span>${t('confirmation.pax')}</span></div>
+            </div>
+          </div>
+          <div class="separator"></div>
+          <div class="vessel-details">
+            <div class="port-column" style="text-align: ${isRTL ? 'right' : 'left'};">
+              <div class="badge"><img src="${assets.fromIcon}"><span>${t('confirmation.departure')}</span></div>
+              <div class="port-name">${fromPort}</div>
+              <div class="date-time">Sun, Sep 14<br>09:00 AM</div>
+            </div>
+            <div class="route-column">
+              <img src="${assets.shipIcon}" style="width: 35px; height: 35px;">
+              <div style="font-size: 12px; color: #5C7096;">${t('summary.estDuration', { days: 5, hours: 5 })}</div>
+            </div>
+            <div class="port-column" style="text-align: ${isRTL ? 'left' : 'right'};">
+              <div class="badge"><img src="${assets.toIcon}"><span>${t('confirmation.arrival')}</span></div>
+              <div class="port-name">${toPort}</div>
+              <div class="date-time">Fri, Sep 18<br>02:00 PM</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="details-widget">
+        <div class="content">${transactionDetails}</div>
+        <div class="details-separator"></div>
+        <div class="content">${priceDetails}</div>
+        <div class="details-separator"></div>
+        <div class="content">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+            <h3 style="font-size: 16px; font-weight: bold; color: black; margin: 0;">${t('confirmation.passenger')}</h3>
+            <h3 style="font-size: 16px; font-weight: bold; color: black; margin: 0;">${t('confirmation.pnr')}</h3>
+          </div>
+          ${passengerRows}
+        </div>
+        <div class="details-separator"></div>
+        <div class="content">
+          <h3 style="font-size: 16px; font-weight: bold; color: black; margin-bottom: 16px;">${t('confirmation.contactDetails')}</h3>
+          <div style="font-size: 16px; color: black; margin-bottom: 8px;">Ahmed Ibrahim</div>
+          <div style="font-size: 16px; color: black; margin-bottom: 8px;">example@gmail.com</div>
+          <div style="font-size: 16px; color: black;">+201234567890</div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
 const ConfirmationScreen = () => {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const params = useLocalSearchParams();
   const isRTL = i18n.language === 'ar';
+
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
+  const assetsRef = useRef({ fromIcon: null, toIcon: null, shipIcon: null });
+
+  useEffect(() => {
+    const loadAssetsAsBase64 = async () => {
+        const toBase64 = async (assetModule) => {
+            try {
+                const asset = Asset.fromModule(assetModule);
+                await asset.downloadAsync();
+                const base64 = await FileSystem.readAsStringAsync(asset.localUri, { encoding: 'base64' });
+                return `data:image/png;base64,${base64}`;
+            } catch (error) {
+                console.error('Error converting asset to base64:', error);
+                return null;
+            }
+        };
+        assetsRef.current.fromIcon = await toBase64(require('../assets/images/icons/from-icon.png'));
+        assetsRef.current.toIcon = await toBase64(require('../assets/images/icons/to-icon.png'));
+        assetsRef.current.shipIcon = await toBase64(require('../assets/images/icons/ship-icon.png'));
+        setAssetsLoaded(true);
+    };
+    loadAssetsAsBase64();
+  }, []);
 
   const passengerCount = params.passengerCount ? parseInt(params.passengerCount, 10) : 1;
   const pricePerPax = params.price ? parseFloat(params.price) : 230;
@@ -62,9 +200,44 @@ const ConfirmationScreen = () => {
 
   const handleNavigate = () => {
     router.push({
-      pathname: '/failedbooking',
-      params: { ...params }
+      pathname: '/eticket',
+      params: { 
+              passengerCount: params.passengerCount,
+              passengersData: params.passengersData 
+            } 
     });
+  };
+
+  const handleShare = async () => {
+    if (!assetsLoaded) {
+      alert("Details are still loading, please try again in a moment.");
+      return;
+    }
+
+    const htmlContent = generateShareableHtml({
+      t, 
+      language: i18n.language, 
+      isRTL, 
+      vesselName, 
+      pricePerPax, 
+      fromPort, 
+      toPort, 
+      passengers,
+      subtotal, 
+      taxes, 
+      totalPrice, 
+      currency, 
+      assets: assetsRef.current,
+    });
+
+    try {
+      await Print.printAsync({
+          html: htmlContent,
+      });
+    } catch (error) {
+        console.error("Failed to open print dialog:", error);
+        alert("An error occurred while preparing the details for sharing.");
+    }
   };
 
   return (
@@ -181,10 +354,14 @@ const ConfirmationScreen = () => {
           </View>
         </ScrollView>
 
+        {/* --- MODIFIED FOOTER --- */}
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleNavigate}>
-            <Text style={styles.actionButtonText}>{t('eticket.headerTitle')}</Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
+              <Share2 size={24} color="#06193b" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton} onPress={handleNavigate}>
+              <Text style={styles.actionButtonText}>{t('eticket.headerTitle')}</Text>
+            </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -344,8 +521,20 @@ const styles = StyleSheet.create({
       shadowOpacity: 0.1,
       shadowRadius: 10,
       elevation: 20,
+      flexDirection: 'row',
+      gap: 12,
+    },
+    shareBtn: {
+      width: 60,
+      height: 60,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: '#e5e7eb',
+      borderRadius: 16,
     },
     actionButton: {
+      flex: 1,
       backgroundColor: '#06193b',
       borderRadius: 16,
       height: 60,

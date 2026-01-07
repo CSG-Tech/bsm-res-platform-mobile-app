@@ -1,4 +1,6 @@
+// app.config.js
 import 'dotenv/config';
+
 console.log(`[app.config.js] API_BASE_URL_DEV is: ${process.env.API_BASE_URL_DEV}`);
 
 export default {
@@ -26,9 +28,13 @@ export default {
       'expo-asset',
       'expo-splash-screen',
     ],
-    "extra": {
+    
+    extra: {
       "API_BASE_URL_DEV": process.env.API_BASE_URL_DEV,
-      "API_BASE_URL_PROD": process.env.API_BASE_URL_PROD
+      "API_BASE_URL_PROD": process.env.API_BASE_URL_PROD,
+      "eas": {
+        "projectId": "cb739ee1-c187-4fd2-b244-bebad086ffab"
+      }
     }
   },
 };

@@ -199,7 +199,7 @@ const PaymentScreen = () => {
         onPress={() => {
           console.log('Confirmed');
           router.push({
-            pathname: '/eticket', 
+            pathname: '/Confirmation', 
             params: { 
               passengerCount: params.passengerCount,
               passengersData: params.passengersData 
