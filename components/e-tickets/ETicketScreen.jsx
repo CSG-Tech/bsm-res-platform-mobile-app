@@ -7,7 +7,6 @@ import {
   Alert,
   I18nManager,
   Image,
-  Keyboard,
   LayoutAnimation,
   Modal,
   Platform,
@@ -22,21 +21,21 @@ import {
   View
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getReservation } from '../../axios/services/ticketService';
 import Barcode from '@kichiyaki/react-native-barcode-generator';
+import { getReservation } from '../../axios/services/ticketService';
 import OTPVerificationModal from '../otp/OTPVerificationModal';
-import { cancelReservation, cancelTickets, getCancellationPolicies } from '../../axios/services/cancellationService';
+import { cancelReservation, cancelTickets } from '../../axios/services/cancellationService';
 import CancelReservationModal from '../modals/CancelReservationsModal';
 import CancelTicketsModal from '../modals/CancelTicketsModal';
-import Toast from 'react-native-toast-message';
 import { getReservationEmail } from '../../axios/services/otpService';
-
+import { loadAssetsAsBase64 } from '../../utils/assetUtils';
+import { generateETicketHTML } from '../PDFTemplates/ETicketPDF';
+import { generateAndSharePDF } from '../../utils/pdfUtils';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// --- Dynamic Data based on translation keys ---
 const tripDetailsKeys = [
   "tripNumber", "ticketNumber", "tripDate", "vessel", "nationality",
   "degree", "route", "passportNumber", "reservationNumber"
@@ -44,9 +43,31 @@ const tripDetailsKeys = [
 
 const accordionItemsKeys = ["ins1", "ins2", "ins3", "ins4", "ins5"];
 
+// Instruction items for PDF with their keys
+const getInstructionItems = (t) => [
+  {
+    title: t('eticket.ins1'),
+    content: t('eticket.ins1Content') || 'Perfume, Canned Sodas and Any Electronics.'
+  },
+  {
+    title: t('eticket.ins2'),
+    content: t('eticket.ins2Content') || 'Perfume, Canned Sodas and Any Electronics.'
+  },
+  {
+    title: t('eticket.ins3'),
+    content: t('eticket.ins3Content') || 'Perfume, Canned Sodas and Any Electronics.'
+  },
+  {
+    title: t('eticket.ins4'),
+    content: t('eticket.ins4Content') || 'Perfume, Canned Sodas and Any Electronics.'
+  },
+  {
+    title: t('eticket.ins5'),
+    content: t('eticket.ins5Content') || 'Perfume, Canned Sodas and Any Electronics.'
+  }
+];
 
-// --- Helper Components ---
-const AccordionItem = ({ title }) => {
+const AccordionItem = ({ title, content }) => {
   const [expanded, setExpanded] = useState(false);
 
   const toggleExpand = () => {
@@ -67,7 +88,7 @@ const AccordionItem = ({ title }) => {
       {expanded && (
         <View style={styles.accordionContent}>
           <Text style={[styles.accordionText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
-            Perfume, Canned Sodas and Any Electronics.
+            {content}
           </Text>
         </View>
       )}
@@ -76,7 +97,6 @@ const AccordionItem = ({ title }) => {
 };
 
 const TicketCard = ({ t, i18n, passengerName, ticketData, summaryData }) => {
-  // Determine ticket status
   const getTicketStatus = () => {
     if (ticketData?.status === 'C') return { text: t('eticket.cancelled'), color: '#EF4444', bgColor: '#FEE2E2' };
     if (ticketData?.status === 'I') return { text: t('eticket.issued'), color: '#10B981', bgColor: '#D1FAE5' };
@@ -86,14 +106,12 @@ const TicketCard = ({ t, i18n, passengerName, ticketData, summaryData }) => {
   const ticketStatus = getTicketStatus();
   const isCancelled = ticketData?.status === 'C';
 
-  // Format date helper
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
-  // Build trip details from API data
   const tripDetailsData = {
     tripNumber: summaryData?.tripSerial || ticketData?.tripSerial || '',
     tripDate: formatDate(summaryData?.startDate) || '',
@@ -115,10 +133,13 @@ const TicketCard = ({ t, i18n, passengerName, ticketData, summaryData }) => {
           isCancelled && styles.cardHeaderCancelled
         ]}>
           <View style={styles.cardHeaderLeft}>
-            <Text style={[styles.passengerLabel, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.passengerNameLabel')}</Text>
-            <Text style={[styles.passengerName, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{passengerName}</Text>
+            <Text style={[styles.passengerLabel, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
+              {t('eticket.passengerNameLabel')}
+            </Text>
+            <Text style={[styles.passengerName, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
+              {passengerName}
+            </Text>
             
-            {/* Ticket Status Badge */}
             <View style={[styles.statusBadge, { backgroundColor: ticketStatus.bgColor }]}>
               <Text style={[styles.statusText, { color: ticketStatus.color }]}>
                 {ticketStatus.text}
@@ -150,8 +171,6 @@ const TicketCard = ({ t, i18n, passengerName, ticketData, summaryData }) => {
   );
 };
 
-
-// --- Main Screen Component ---
 const ETicketScreen = () => {
   const router = useRouter();
   const { t, i18n } = useTranslation();
@@ -170,24 +189,41 @@ const ETicketScreen = () => {
   const [showTicketCancelOTP, setShowTicketCancelOTP] = useState(false);
   const [showCancelReservationModal, setShowCancelReservationModal] = useState(false);
   const [showCancelTicketsModal, setShowCancelTicketsModal] = useState(false);
-  const [cancelReason, setCancelReason] = useState('');
-  const [selectedTicketIds, setSelectedTicketIds] = useState([]);
   const [cancelling, setCancelling] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  const [assets, setAssets] = useState(null);
+  const [assetsLoading, setAssetsLoading] = useState(true);
 
-  // Fetch user email on component mount
+  const fetchUserEmail = async () => {
+    try {
+      const userInfo = await getReservationEmail(params.reservationNumber);
+      if (userInfo?.email) {
+        setUserEmail(userInfo.email);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user email:', error);
+    }
+  };
 
-    const fetchUserEmail = async () => {
+  // Load assets for PDF generation
+  useEffect(() => {
+    const loadAssets = async () => {
       try {
-        const userInfo = await getReservationEmail(params.reservationNumber);
-        if (userInfo?.email) {
-          setUserEmail(userInfo.email);
-        }
-      } catch (error) {
-        console.error('Failed to fetch user email:', error);
+        const loadedAssets = await loadAssetsAsBase64({
+          logo: require('../../assets/images/Logo.png'),
+          barcode: require('../../assets/images/barcode.png'),
+          lineDot: require('../../assets/images/linedot.png'),
+        });
+        setAssets(loadedAssets);
+      } catch (err) {
+        console.error('Error loading assets:', err);
+      } finally {
+        setAssetsLoading(false);
       }
     };
 
+    loadAssets();
+  }, []);
 
   useEffect(() => {
     const fetchReservationData = async () => {
@@ -196,20 +232,14 @@ const ETicketScreen = () => {
         setError(null);
         setNoResults(false);
 
-        // Build search object from params
         const searchObject = {
           lastName: params.lastName || '',
           passportNumber: params.passportNumber || '',
           reservationId: params.reservationNumber || '',
         };
 
-        console.log('Fetching reservation with:', searchObject);
-
         const response = await getReservation(searchObject);
 
-        console.log('Reservation data received:', response);
-
-        // Check if response has no tickets
         if (!response || !response.tickets || response.tickets.length === 0) {
           setNoResults(true);
           setPassengers([]);
@@ -218,7 +248,6 @@ const ETicketScreen = () => {
 
         setReservationData(response);
 
-        // Map tickets to passengers
         const formattedPassengers = response.tickets.map((ticket, index) => ({
           id: ticket.id,
           name: ticket.passengerName || `${ticket.passengerFirstName} ${ticket.passengerLastName}`,
@@ -226,7 +255,7 @@ const ETicketScreen = () => {
           ticketData: ticket,
         }));
         setPassengers(formattedPassengers);
-        // 🎯 AUTO-SELECT THE PASSENGER THAT MATCHES SEARCH CRITERIA
+
         const searchPassportNumber = params.passportNumber?.toLowerCase().trim();
         const searchLastName = params.lastName?.toLowerCase().trim();
 
@@ -236,12 +265,10 @@ const ETicketScreen = () => {
             const ticketLastName = passenger.ticketData?.passengerLastName?.toLowerCase().trim();
             const ticketFullName = passenger.name?.toLowerCase().trim();
 
-            // Check if passport matches
             if (searchPassportNumber && ticketPassport === searchPassportNumber) {
               return true;
             }
 
-            // Check if last name matches
             if (searchLastName && (
               ticketLastName === searchLastName || 
               ticketFullName?.includes(searchLastName)
@@ -252,16 +279,14 @@ const ETicketScreen = () => {
             return false;
           });
 
-          // If found, select that passenger
           if (matchingIndex !== -1) {
-            console.log(`Auto-selecting passenger at index ${matchingIndex}`);
             setSelectedPassengerIndex(matchingIndex);
           }
         }
 
       } catch (err) {
         console.error('Error fetching reservation:', err);
-        if(err.response && err.response.status === 404) {
+        if (err.response && err.response.status === 404) {
           setNoResults(true);
         } else {
           setError(err.message || 'Failed to load reservation');
@@ -276,12 +301,9 @@ const ETicketScreen = () => {
     fetchUserEmail();
   }, [params.lastName, params.passportNumber, params.reservationNumber, t]);
 
-  // Check if reservation is cancelled
   const isReservationCancelled = () => {
-    // Check if status is explicitly CANCELLED
     if (reservationData?.status === 'CANCELLED') return true;
     
-    // Check if all tickets are cancelled
     if (reservationData?.tickets && reservationData.tickets.length > 0) {
       return reservationData.tickets.every(ticket => ticket.status === 'C');
     }
@@ -289,15 +311,14 @@ const ETicketScreen = () => {
     return false;
   };
 
-  const redirectToTransaction = () =>{
+  const redirectToTransaction = () => {
     router.push({
-    pathname: '/confirmation',
-    params: {
-      reservationId: params.reservationNumber
-    }
-  });
-
-  }
+      pathname: '/confirmation',
+      params: {
+        reservationId: params.reservationNumber
+      }
+    });
+  };
 
   const handleMenuPress = () => {
     if (menuButtonRef.current) {
@@ -311,18 +332,151 @@ const ETicketScreen = () => {
       });
     }
   };
+  const handleShareAll = async () => {
+    if (assetsLoading || !assets) {
+      Alert.alert(
+        t('common.pleaseWait'),
+        t('eticket.assetsLoading'),
+        [{ text: t('common.ok') }]
+      );
+      return;
+    }
 
-  const handleDownload = () => {
-    router.push({
-      pathname: '/confirmation',
-      params: {
-        ...params,
-      }
-    });
+    if (!reservationData) {
+      Alert.alert(
+        t('error.title'),
+        t('eticket.dataNotLoaded'),
+        [{ text: t('common.ok') }]
+      );
+      return;
+    }
+
+    try {
+      const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      };
+
+      // Build array of all passengers with their data
+      const allPassengersData = passengers.map((passenger) => {
+        const ticketData = passenger.ticketData;
+        
+        const tripDetailsData = {
+          tripNumber: reservationData.summary?.tripSerial || ticketData?.tripSerial || '',
+          ticketNumber: ticketData?.oraclePrintTicketNo || '',
+          tripDate: formatDate(reservationData.summary?.startDate) || '',
+          vessel: reservationData.summary?.vessel || '',
+          nationality: i18n.language === 'ar' 
+            ? ticketData?.nationality?.natArbName 
+            : ticketData?.nationality?.natName,
+          degree: i18n.language === 'ar' 
+            ? ticketData?.degree?.degreeArabName 
+            : ticketData?.degree?.degreeEnglishName,
+          route: reservationData.summary 
+            ? `${i18n.language === 'ar' ? reservationData.summary.fromPortArab : reservationData.summary.fromPortEng} - ${i18n.language === 'ar' ? reservationData.summary.toPortArab : reservationData.summary.toPortEng}` 
+            : '',
+          passportNumber: ticketData?.passportNumber || '',
+          reservationNumber: ticketData?.oracleAgentResNo || ticketData?.oracleTicketNo || '',
+        };
+
+        return {
+          passengerName: passenger.name,
+          tripDetailsData
+        };
+      });
+      
+      const html = generateETicketHTML({
+        t,
+        language: i18n.language,
+        isRTL: I18nManager.isRTL,
+        passengers: allPassengersData,
+        assets,
+        instructionItems: getInstructionItems(t)
+      });
+      
+      await generateAndSharePDF(html);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      Alert.alert(
+        t('error.title'),
+        t('eticket.pdfGenerationFailed'),
+        [{ text: t('common.ok') }]
+      );
+    }
+  };
+  const handleShareOrDownload = async () => {
+    if (assetsLoading || !assets) {
+      Alert.alert(
+        t('common.pleaseWait'),
+        t('eticket.assetsLoading'),
+        [{ text: t('common.ok') }]
+      );
+      return;
+    }
+
+    const currentPassenger = passengers[selectedPassengerIndex];
+    const currentPassengerName = currentPassenger?.name || "Passenger";
+    const currentTicketData = currentPassenger?.ticketData;
+
+    if (!currentTicketData || !reservationData) {
+      Alert.alert(
+        t('error.title'),
+        t('eticket.dataNotLoaded'),
+        [{ text: t('common.ok') }]
+      );
+      return;
+    }
+
+    try {
+      const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      };
+
+      const tripDetailsData = {
+        tripNumber: reservationData.summary?.tripSerial || currentTicketData?.tripSerial || '',
+        ticketNumber: currentTicketData?.oraclePrintTicketNo || '',
+        tripDate: formatDate(reservationData.summary?.startDate) || '',
+        vessel: reservationData.summary?.vessel || '',
+        nationality: i18n.language === 'ar' 
+          ? currentTicketData?.nationality?.natArbName 
+          : currentTicketData?.nationality?.natName,
+        degree: i18n.language === 'ar' 
+          ? currentTicketData?.degree?.degreeArabName 
+          : currentTicketData?.degree?.degreeEnglishName,
+        route: reservationData.summary 
+          ? `${i18n.language === 'ar' ? reservationData.summary.fromPortArab : reservationData.summary.fromPortEng} - ${i18n.language === 'ar' ? reservationData.summary.toPortArab : reservationData.summary.toPortEng}` 
+          : '',
+        passportNumber: currentTicketData?.passportNumber || '',
+        reservationNumber: currentTicketData?.oracleAgentResNo || currentTicketData?.oracleTicketNo || '',
+      };
+
+      const html = generateETicketHTML({
+        t,
+        language: i18n.language,
+        isRTL: I18nManager.isRTL,
+        passengers: [{
+          passengerName: currentPassengerName,
+          tripDetailsData
+        }],
+        assets,
+        instructionItems: getInstructionItems(t)
+      });
+
+      await generateAndSharePDF(html);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      Alert.alert(
+        t('error.title'),
+        t('eticket.pdfGenerationFailed'),
+        [{ text: t('common.ok') }]
+      );
+    }
   };
 
   const handleCancelReservationConfirm = async (reason) => {
-    
     const resId = params.reservationNumber || reservationData?.tickets?.[0]?.reservationId;
     
     setCancelling(true);
@@ -333,10 +487,8 @@ const ETicketScreen = () => {
         refundType: 'full'
       });
       
-      // Close modal first
       setShowCancelReservationModal(false);
       
-      // Show success alert
       Alert.alert(
         t('eticket.cancellationSuccessTitle'),
         t('eticket.reservationCancelledSuccessMessage'),
@@ -344,7 +496,6 @@ const ETicketScreen = () => {
           {
             text: t('common.ok'),
             onPress: async () => {
-              // Refresh the reservation data
               await refreshReservationData();
             }
           }
@@ -354,7 +505,6 @@ const ETicketScreen = () => {
       
     } catch (error) {
       console.error('Cancel reservation error:', error);
-      console.error('Error response:', error.response?.data);
       
       if (error.response?.status === 409) {
         Alert.alert(
@@ -396,15 +546,12 @@ const ETicketScreen = () => {
   };
 
   const handleCancelTicketsConfirm = async (ticketIds, reason) => {
-    
     setCancelling(true);
     try {
       await cancelTickets({ ticketIds, reason });
       
-      // Close modal first
       setShowCancelTicketsModal(false);
       
-      // Show success alert
       Alert.alert(
         t('eticket.cancellationSuccessTitle'),
         t('eticket.ticketsCancelledSuccessMessage'),
@@ -412,7 +559,6 @@ const ETicketScreen = () => {
           {
             text: t('common.ok'),
             onPress: async () => {
-              // Refresh the reservation data
               await refreshReservationData();
             }
           }
@@ -452,7 +598,6 @@ const ETicketScreen = () => {
     }
   };
 
-  // Add this refresh function
   const refreshReservationData = async () => {
     try {
       setLoading(true);
@@ -486,11 +631,11 @@ const ETicketScreen = () => {
       setLoading(false);
     }
   };
+
   const currentPassenger = passengers[selectedPassengerIndex];
   const currentPassengerName = currentPassenger?.name || "Passenger";
   const currentTicketData = currentPassenger?.ticketData;
 
-  // Show loading screen
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -503,7 +648,6 @@ const ETicketScreen = () => {
     );
   }
 
-  // Show error screen
   if (error) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -522,7 +666,6 @@ const ETicketScreen = () => {
     );
   }
 
-  // Show no results screen
   if (noResults) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -610,20 +753,26 @@ const ETicketScreen = () => {
           </View>
 
           <View style={styles.instructionsSection}>
-            <Text style={[styles.instructionsTitle, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.instructionsTitle')}</Text>
+            <Text style={[styles.instructionsTitle, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
+              {t('eticket.instructionsTitle')}
+            </Text>
             <View style={styles.accordionContainer}>
-              {accordionItemsKeys.map((itemKey, index) => (
-                <AccordionItem key={index} title={t(`eticket.${itemKey}`)} />
+              {getInstructionItems(t).map((item, index) => (
+                <AccordionItem 
+                  key={index} 
+                  title={item.title}
+                  content={item.content}
+                />
               ))}
             </View>
           </View>
         </ScrollView>
 
         <View style={[styles.footer, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
-          <TouchableOpacity style={styles.shareBtn}>
+          <TouchableOpacity style={styles.shareBtn} onPress={handleShareAll}>
             <Share2 size={24} color="#000" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.downloadBtn} onPress={handleDownload}>
+          <TouchableOpacity style={styles.downloadBtn} onPress={handleShareOrDownload}>
             <Text style={styles.downloadText}>{t('eticket.download')}</Text>
           </TouchableOpacity>
         </View>
@@ -636,8 +785,10 @@ const ETicketScreen = () => {
               <TouchableOpacity style={styles.menuItem} onPress={() => {
                 setMenuVisible(false);
                 redirectToTransaction();
-                }}>
-                <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t('eticket.viewTransaction')}</Text>
+              }}>
+                <Text style={[styles.menuText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
+                  {t('eticket.viewTransaction')}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.menuItem} onPress={() => {
                 setMenuVisible(false); 
@@ -657,7 +808,6 @@ const ETicketScreen = () => {
           visible={showOTP}
           onClose={() => setShowOTP(false)}
           onSuccess={() => {
-            console.log("OTP Success!");
             setShowOTP(false);
             setTimeout(() => {
               setShowCancelReservationModal(true);
@@ -665,7 +815,7 @@ const ETicketScreen = () => {
           }}
           reservationId={params.reservationNumber || reservationData?.tickets?.[0]?.reservationId}
           purpose="CANCEL_RESERVATION"
-          initialEmail={userEmail} // Pass email from user info
+          initialEmail={userEmail}
         />
       )}
 
@@ -674,7 +824,6 @@ const ETicketScreen = () => {
           visible={showTicketCancelOTP}
           onClose={() => setShowTicketCancelOTP(false)}
           onSuccess={() => {
-            console.log("OTP Success for ticket cancellation!");
             setShowTicketCancelOTP(false);
             setTimeout(() => {
               setShowCancelTicketsModal(true);
@@ -710,6 +859,7 @@ const ETicketScreen = () => {
   );
 };
 
+// Styles remain the same as in the original document 3
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#edf3ff' },
   container: { flex: 1 },
@@ -859,7 +1009,6 @@ const styles = StyleSheet.create({
   detailValue: { fontFamily: 'Inter-Regular', fontSize: 13, color: 'black' },
   barcodeContainer: { alignItems: 'center', paddingBottom: 32, width: '100%', marginTop: 20 },
   separatorLine: { width: '100%', height: 1, marginBottom: 16, opacity: 0.5 },
-  barcodeImage: { width: '90%', top: 30, height: 75 },
   ticketNotch: {
     position: 'absolute',
     bottom: 115, 
@@ -948,22 +1097,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 24,
     gap: 12,
-  },
-  actionButtonPrimary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1.5,
-    borderColor: '#BFDBFE',
-    borderRadius: 12,
-    paddingVertical: 16,
-    gap: 8,
-  },
-  actionButtonTextPrimary: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 15,
-    color: '#3B82F6',
   },
   actionButtonDanger: {
     flexDirection: 'row',

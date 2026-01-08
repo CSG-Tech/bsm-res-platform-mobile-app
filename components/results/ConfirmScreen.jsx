@@ -1,9 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Copy } from 'lucide-react-native';
+import { ArrowLeft, Copy, Share2 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
+  Alert,
   I18nManager,
   Image,
   SafeAreaView,
@@ -15,10 +16,12 @@ import {
   View
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import Toast from 'react-native-toast-message';
 import { clearPendingReservation } from '../../axios/storage/reservationStorage';
 import { getTripSummary, getReservationDetails } from '../../axios/services/ticketService';
-import Toast from 'react-native-toast-message';
-// import { Clipboard } from '@react-native-clipboard/clipboard';
+import { loadAssetsAsBase64 } from '../../utils/assetUtils';
+import { generateConfirmationHTML } from '../PDFTemplates/ConfirmationPDF';
+import { generateAndSharePDF } from '../../utils/pdfUtils';
 
 const DetailCard = ({ title, children }) => (
   <View style={styles.card}>
@@ -28,8 +31,9 @@ const DetailCard = ({ title, children }) => (
 );
 
 const DetailRow = ({ label, value, valueStyle, showCopy = false, children }) => {
-  const {t} = useTranslation();
-    const handleCopy = async () => {
+  const { t } = useTranslation();
+  
+  const handleCopy = async () => {
     if (value) {
       await Clipboard.setStringAsync(value);
       Toast.show({
@@ -71,8 +75,30 @@ const ConfirmationScreen = () => {
   const [reservation, setReservation] = useState(null);
   const [tripData, setTripData] = useState(null);
   const [error, setError] = useState(null);
+  const [assets, setAssets] = useState(null);
+  const [assetsLoading, setAssetsLoading] = useState(true);
 
   const reservationId = params.reservationId;
+
+  // Load assets for PDF generation
+  useEffect(() => {
+    const loadAssets = async () => {
+      try {
+        const loadedAssets = await loadAssetsAsBase64({
+          fromIcon: require('../../assets/images/icons/from-icon.png'),
+          toIcon: require('../../assets/images/icons/to-icon.png'),
+          shipIcon: require('../../assets/images/icons/ship-icon.png'),
+        });
+        setAssets(loadedAssets);
+      } catch (err) {
+        console.error('Error loading assets:', err);
+      } finally {
+        setAssetsLoading(false);
+      }
+    };
+
+    loadAssets();
+  }, []);
 
   useEffect(() => {
     const fetchReservationData = async () => {
@@ -85,16 +111,12 @@ const ConfirmationScreen = () => {
       try {
         setLoading(true);
         
-        // Fetch reservation details
         const reservationData = await getReservationDetails(reservationId);
         setReservation(reservationData);
-        console.log('Reservation Data:', reservationData);
 
-        // Fetch trip summary using tripSerial from reservation
         if (reservationData.oracleTripSerial) {
           const tripSummary = await getTripSummary(reservationData.oracleTripSerial);
           setTripData(tripSummary);
-          console.log('Trip Summary:', tripSummary);
         }
 
         setLoading(false);
@@ -111,9 +133,89 @@ const ConfirmationScreen = () => {
   const handleNavigate = async () => {
     await clearPendingReservation();
     router.dismissAll();
-    router.replace({
-      pathname: '/'
-    });
+    router.replace({ pathname: '/' });
+  };
+
+  const handleShare = async () => {
+    if (assetsLoading || !assets) {
+      Alert.alert(
+        t('common.pleaseWait'),
+        t('confirmation.assetsLoading'),
+        [{ text: t('common.ok') }]
+      );
+      return;
+    }
+
+    if (!reservation || !tripData) {
+      Alert.alert(
+        t('error.title'),
+        t('confirmation.dataNotLoaded'),
+        [{ text: t('common.ok') }]
+      );
+      return;
+    }
+
+    try {
+      const vesselName = tripData?.vessel || tripData?.tripName || "Vessel";
+      const fromPort = isRTL 
+        ? (tripData?.fromPortArab || tripData?.fromPortEng) 
+        : (tripData?.fromPortEng || tripData?.fromPortArab);
+      const toPort = isRTL 
+        ? (tripData?.toPortArab || tripData?.toPortEng) 
+        : (tripData?.toPortEng || tripData?.toPortArab);
+      const tickets = reservation.tickets || [];
+      const totalAmount = reservation.totalAmount || 0;
+      const currency = reservation.currency === 1 ? 'SAR' : '$';
+
+      const startDate = tripData?.startDate ? new Date(tripData.startDate) : null;
+      const endDate = tripData?.endDate ? new Date(tripData.endDate) : null;
+      
+      const calculateDuration = () => {
+        if (!startDate || !endDate) return { days: 0, hours: 0 };
+        const diffMs = endDate - startDate;
+        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        return { days, hours };
+      };
+
+      const duration = calculateDuration();
+
+      const html = generateConfirmationHTML({
+        t,
+        language: i18n.language,
+        isRTL,
+        vesselName,
+        pricePerPax: totalAmount,
+        fromPort,
+        toPort,
+        passengers: tickets.map(ticket => ({
+          firstName: ticket.passengerName?.split(' ')[0] || '',
+          lastName: ticket.passengerName?.split(' ').slice(1).join(' ') || '',
+          pnr: ticket.oraclePrintTicketNo || 'ABC012'
+        })),
+        subtotal: totalAmount,
+        taxes: 0,
+        totalPrice: totalAmount,
+        currency,
+        assets,
+        reservationNumber: reservation.oracleResNo?.toString() || reservation.id?.toString(),
+        paymentMethod: t('confirmation.' + reservation.payments[0]?.paymentMethod) || 'Processing',
+        paymentStatus: reservation.status === 'PAID' || reservation.status === 'ISSUED' ? 'PROCESSED' : reservation.status,
+        startDate,
+        endDate,
+        durationDays: duration.days,
+        durationHours: duration.hours
+      });
+
+      await generateAndSharePDF(html);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      Alert.alert(
+        t('error.title'),
+        t('confirmation.pdfGenerationFailed'),
+        [{ text: t('common.ok') }]
+      );
+    }
   };
 
   if (loading) {
@@ -140,16 +242,18 @@ const ConfirmationScreen = () => {
     );
   }
 
-  // Extract data
   const vesselName = tripData?.vessel || tripData?.tripName || "Vessel";
-  const fromPort = isRTL ? (tripData?.fromPortArab || tripData?.fromPortEng) : (tripData?.fromPortEng || tripData?.fromPortArab);
-  const toPort = isRTL ? (tripData?.toPortArab || tripData?.toPortEng) : (tripData?.toPortEng || tripData?.toPortArab);
+  const fromPort = isRTL 
+    ? (tripData?.fromPortArab || tripData?.fromPortEng) 
+    : (tripData?.fromPortEng || tripData?.fromPortArab);
+  const toPort = isRTL 
+    ? (tripData?.toPortArab || tripData?.toPortEng) 
+    : (tripData?.toPortEng || tripData?.toPortArab);
   const tickets = reservation.tickets || [];
   const totalAmount = reservation.totalAmount || 0;
   const currency = reservation.currency === 1 ? 'SAR' : '$';
   const paymentStatus = reservation.status === 'PAID' || reservation.status === 'ISSUED' ? 'PROCESSED' : reservation.status;
 
-  // Format dates
   const startDate = tripData?.startDate ? new Date(tripData.startDate) : null;
   const endDate = tripData?.endDate ? new Date(tripData.endDate) : null;
   
@@ -163,7 +267,6 @@ const ConfirmationScreen = () => {
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
-  // Calculate duration
   const calculateDuration = () => {
     if (!startDate || !endDate) return 'N/A';
     const diffMs = endDate - startDate;
@@ -207,7 +310,9 @@ const ConfirmationScreen = () => {
                 <View style={[styles.ticketHeader, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                   <Text style={styles.vesselName}>{vesselName}</Text>
                   <View>
-                    <Text style={[styles.estPriceLabel, { textAlign: isRTL ? 'left' : 'right' }]}>{t('confirmation.estPrice')}</Text>
+                    <Text style={[styles.estPriceLabel, { textAlign: isRTL ? 'left' : 'right' }]}>
+                      {t('confirmation.estPrice')}
+                    </Text>
                     <Text>
                       <Text style={styles.price}>{currency} {totalAmount.toFixed(2)}</Text>
                     </Text>
@@ -245,9 +350,15 @@ const ConfirmationScreen = () => {
 
             <View style={styles.detailsWidget}>
               <DetailCard title={t('confirmation.transactionDetails')}>
-                <DetailRow label={t('confirmation.reservationNumber')} value={reservation.oracleResNo?.toString() || reservation.id?.toString()} showCopy />
-                {/* <DetailRow label={t('confirmation.paymentId')} value={reservation.paymentIntent?.toString()} showCopy /> */}
-                <DetailRow label={t('confirmation.paymentMethod')} value={t('confirmation.' + reservation.payments[0]?.paymentMethod) || 'Processing'} />
+                <DetailRow 
+                  label={t('confirmation.reservationNumber')} 
+                  value={reservation.oracleResNo?.toString() || reservation.id?.toString()} 
+                  showCopy 
+                />
+                <DetailRow 
+                  label={t('confirmation.paymentMethod')} 
+                  value={t('confirmation.' + reservation.payments[0]?.paymentMethod) || 'Processing'} 
+                />
                 <DetailRow label={t('confirmation.paymentState')} value={paymentStatus} />
                 <DetailRow label={t('confirmation.totalPrice')} value={`${currency} ${totalAmount.toFixed(2)}`} />
               </DetailCard>
@@ -256,11 +367,18 @@ const ConfirmationScreen = () => {
 
               <DetailCard title={t('confirmation.priceDetails')}>
                 <DetailRow label={t('confirmation.passengers')} />
-                <DetailRow label={t('confirmation.adultEconomy', { count: tickets.length })} value={`${currency} ${totalAmount.toFixed(2)}`} />
+                <DetailRow 
+                  label={t('confirmation.adultEconomy', { count: tickets.length })} 
+                  value={`${currency} ${totalAmount.toFixed(2)}`} 
+                />
                 <View style={{height: 12}} />
                 <DetailRow label={t('confirmation.subtotal')} value={`${currency} ${totalAmount.toFixed(2)}`} />
                 <DetailRow label={t('confirmation.taxes')} value={`${currency} 0.00`} />
-                <DetailRow label={t('confirmation.total')} value={`${currency} ${totalAmount.toFixed(2)}`} valueStyle={styles.boldText} />
+                <DetailRow 
+                  label={t('confirmation.total')} 
+                  value={`${currency} ${totalAmount.toFixed(2)}`} 
+                  valueStyle={styles.boldText} 
+                />
               </DetailCard>
               
               <View style={styles.detailsSeparator} />
@@ -285,206 +403,236 @@ const ConfirmationScreen = () => {
         </ScrollView>
 
         <View style={styles.footer}>
+          <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
+            <Share2 size={24} color="#06193b" />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={handleNavigate}>
             <Text style={styles.actionButtonText}>{t('confirmation.backToMain')}</Text>
           </TouchableOpacity>
         </View>
       </View>
-    <Toast />
+      <Toast />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#fff' },
-    container: { flex: 1, backgroundColor: '#fff' },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      backgroundColor: '#fff',
-    },
-    headerTitle: {
-      flex: 1,
-      padding:20,
-      textAlign: 'center',
-      fontFamily: 'Inter-Bold',
-      fontSize: 18,
-      color: 'black',
-    },
-    iconButton: {
-      width: 36,
-      height: 36,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    scrollContent: {
-      paddingBottom: 120,
-    },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: 16,
-    },
-    loadingText: {
-      fontFamily: 'Inter-Regular',
-      fontSize: 16,
-      color: '#666',
-    },
-    errorContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 24,
-      gap: 24,
-    },
-    errorText: {
-      fontFamily: 'Inter-Regular',
-      fontSize: 16,
-      color: '#dc3545',
-      textAlign: 'center',
-    },
-    successBanner: {
-      backgroundColor: '#e6f9f0',
-      paddingHorizontal: 24,
-      paddingTop: 16,
-      paddingBottom: 24,
-    },
-    bannerHeader: {
-      alignItems: 'center',
-      gap: 15,
-      marginBottom: 10,
-    },
-    checkmarkIcon: { 
-      width: 48, 
-      height: 48, 
-      tintColor: '#00cc6d' 
-    },
-    successTitle: {
-      fontFamily: 'Inter-Bold',
-      fontSize: 20,
-      color: '#008848',
-    },
-    successMessage: {
-      fontFamily: 'Inter-Regular',
-      fontSize: 14,
-      color: '#448b6a',
-      lineHeight: 21,
-    },
-    linkText: {
-      fontFamily: 'Inter-Medium',
-      textDecorationLine: 'underline',
-    },
-    mainContentContainer: {
-      backgroundColor: '#edf3ff',
-      paddingTop: 32,
-      paddingBottom: 20,
-    },
-    ticketContainer: {
-      marginHorizontal: 24,
-      marginBottom: 24,
-      backgroundColor: 'white',
-      borderRadius: 16,
-      overflow: 'hidden',
-      position: 'relative',
-      shadowColor: "#9abdff",
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.25,
-      shadowRadius: 25,
-      elevation: 10,
-    },
-    ticketContent: {
-      padding: 24,
-    },
-    ticketHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    vesselName: { fontFamily: 'Inter-Bold', fontSize: 18, color: 'black' },
-    estPriceLabel: { fontFamily: 'Inter-Regular', fontSize: 15, color: '#7E92B9' },
-    price: { fontFamily: 'Inter-Bold', color: '#6291E8', fontSize: 18 },
-    paxText: { fontSize: 16, color: 'black' },
-    separator: { height: 1, backgroundColor: '#f0f0f0', marginVertical: 16 },
-    vesselDetailsContainer: { flexDirection: 'row', justifyContent: 'space-between' },
-    portDetailColumn: { flex: 0.4, gap: 4 },
-    routeColumn: { flex: 0.2, alignItems: 'center', paddingTop: 30, gap: 4 },
-    badge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EDF3FF', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 4, gap: 8 },
-    badgeRight: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EDF3FF', borderRadius: 20, paddingHorizontal: 17, paddingVertical: 4, gap: 8 },
-    badgeIcon: { width: 16, height: 16 },
-    badgeText: { fontFamily: 'Inter-Medium', color: '#5C7096', fontSize: 13 },
-    portNameDetail: { fontFamily: 'Inter-Bold', fontSize: 16, color: 'black', marginTop: 8 },
-    portNameDetailRight: { fontFamily: 'Inter-Bold', fontSize: 16, color: 'black', marginTop: 8 },
-    dateTimeText: { fontFamily: 'Inter-Regular', fontSize: 14, color: 'black', lineHeight: 20 },
-    dateTimeTextRight: { fontFamily: 'Inter-Regular', fontSize: 14, color: 'black', lineHeight: 20 },
-    shipIcon: { width: 35, height: 35, resizeMode: 'contain' },
-    durationText: { fontFamily: 'Inter-Regular', color: '#5C7096', fontSize: 12 },
-    ticketNotch: {
-      position: 'absolute',
-      top: '50%',
-      marginTop: -52,
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: '#edf3ff',
-    },
-    notchLeft: { left: -22 },
-    notchRight: { right: -22 },
-    detailsWidget: {
-      marginHorizontal: 24,
-      backgroundColor: 'white',
-      borderRadius: 16,
-      shadowColor: "#d8e4f6",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.7,
-      shadowRadius: 15,
-      elevation: 5,
-    },
-    detailsSeparator: {
-      height: 1,
-      backgroundColor: '#f0f0f0',
-      marginHorizontal: 24,
-    },
-    card: { 
-      backgroundColor: 'transparent',
-      padding: 24,
-      gap: 16,
-    },
-    cardTitle: { fontFamily: 'Inter-Bold', fontSize: 16, color: 'black', marginBottom: 8 },
-    detailRow: { justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' },
-    detailLabel: { fontFamily: 'Inter-Regular', fontSize: 16, color: 'black' },
-    valueContainer: { alignItems: 'center' },
-    detailValue: { fontFamily: 'Inter-Bold', fontSize: 14, color: 'black', flexShrink: 1, flexWrap: 'wrap' },
-    boldText: { fontFamily: 'Inter-Bold', fontSize: 16 },
-    footer: {
-      position: 'absolute',
-      bottom: 0,
-      width: '100%',
-      paddingVertical: 16,
-      paddingBottom: 34, 
-      paddingHorizontal: 24,
-      backgroundColor: 'white',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: -4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 10,
-      elevation: 20,
-    },
-    actionButton: {
-      backgroundColor: '#06193b',
-      borderRadius: 16,
-      height: 60,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    actionButtonText: {
-      fontFamily: 'Inter-Bold',
-      fontSize: 16,
-      color: 'white',
-    },
+  safeArea: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#fff',
+  },
+  headerTitle: {
+    flex: 1,
+    padding: 20,
+    textAlign: 'center',
+    fontFamily: 'Inter-Bold',
+    fontSize: 18,
+    color: 'black',
+  },
+  iconButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scrollContent: {
+    paddingBottom: 120,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    gap: 24,
+  },
+  errorText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    color: '#dc3545',
+    textAlign: 'center',
+  },
+  successBanner: {
+    backgroundColor: '#e6f9f0',
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  bannerHeader: {
+    alignItems: 'center',
+    gap: 15,
+    marginBottom: 10,
+  },
+  checkmarkIcon: { 
+    width: 48, 
+    height: 48, 
+    tintColor: '#00cc6d' 
+  },
+  successTitle: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 20,
+    color: '#008848',
+  },
+  successMessage: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: '#448b6a',
+    lineHeight: 21,
+  },
+  linkText: {
+    fontFamily: 'Inter-Medium',
+    textDecorationLine: 'underline',
+  },
+  mainContentContainer: {
+    backgroundColor: '#edf3ff',
+    paddingTop: 32,
+    paddingBottom: 20,
+  },
+  ticketContainer: {
+    marginHorizontal: 24,
+    marginBottom: 24,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+    shadowColor: "#9abdff",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 25,
+    elevation: 10,
+  },
+  ticketContent: {
+    padding: 24,
+  },
+  ticketHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  vesselName: { fontFamily: 'Inter-Bold', fontSize: 18, color: 'black' },
+  estPriceLabel: { fontFamily: 'Inter-Regular', fontSize: 15, color: '#7E92B9' },
+  price: { fontFamily: 'Inter-Bold', color: '#6291E8', fontSize: 18 },
+  separator: { height: 1, backgroundColor: '#f0f0f0', marginVertical: 16 },
+  vesselDetailsContainer: { flexDirection: 'row', justifyContent: 'space-between' },
+  portDetailColumn: { flex: 0.4, gap: 4 },
+  routeColumn: { flex: 0.2, alignItems: 'center', paddingTop: 30, gap: 4 },
+  badge: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#EDF3FF', 
+    borderRadius: 20, 
+    paddingHorizontal: 8, 
+    paddingVertical: 4, 
+    gap: 8 
+  },
+  badgeRight: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#EDF3FF', 
+    borderRadius: 20, 
+    paddingHorizontal: 17, 
+    paddingVertical: 4, 
+    gap: 8 
+  },
+  badgeIcon: { width: 16, height: 16 },
+  badgeText: { fontFamily: 'Inter-Medium', color: '#5C7096', fontSize: 13 },
+  portNameDetail: { fontFamily: 'Inter-Bold', fontSize: 16, color: 'black', marginTop: 8 },
+  portNameDetailRight: { fontFamily: 'Inter-Bold', fontSize: 16, color: 'black', marginTop: 8 },
+  dateTimeText: { fontFamily: 'Inter-Regular', fontSize: 14, color: 'black', lineHeight: 20 },
+  dateTimeTextRight: { fontFamily: 'Inter-Regular', fontSize: 14, color: 'black', lineHeight: 20 },
+  shipIcon: { width: 35, height: 35, resizeMode: 'contain' },
+  durationText: { fontFamily: 'Inter-Regular', color: '#5C7096', fontSize: 12 },
+  ticketNotch: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: -52,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#edf3ff',
+  },
+  notchLeft: { left: -22 },
+  notchRight: { right: -22 },
+  detailsWidget: {
+    marginHorizontal: 24,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    shadowColor: "#d8e4f6",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.7,
+    shadowRadius: 15,
+    elevation: 5,
+  },
+  detailsSeparator: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+    marginHorizontal: 24,
+  },
+  card: { 
+    backgroundColor: 'transparent',
+    padding: 24,
+    gap: 16,
+  },
+  cardTitle: { fontFamily: 'Inter-Bold', fontSize: 16, color: 'black', marginBottom: 8 },
+  detailRow: { justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' },
+  detailLabel: { fontFamily: 'Inter-Regular', fontSize: 16, color: 'black' },
+  valueContainer: { alignItems: 'center' },
+  detailValue: { fontFamily: 'Inter-Bold', fontSize: 14, color: 'black', flexShrink: 1, flexWrap: 'wrap' },
+  boldText: { fontFamily: 'Inter-Bold', fontSize: 16 },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+    paddingVertical: 16,
+    paddingBottom: 34, 
+    paddingHorizontal: 24,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 20,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  shareBtn: {
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 16,
+  },
+  actionButton: {
+    flex: 1,
+    backgroundColor: '#06193b',
+    borderRadius: 16,
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButtonText: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 16,
+    color: 'white',
+  },
 });
 
 export default ConfirmationScreen;

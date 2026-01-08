@@ -57,7 +57,9 @@
     "loading": "Loading..",
     "goBack": "Return",
     "copied": "Copied",
-    "copiedToClipboard": "Copied to clipboard"
+    "copiedToClipboard": "Copied to clipboard",
+    "pleaseWait": "Please Wait",
+    "retry": "Retry"
   },
   "error": {
     "title": "Error"
@@ -237,7 +239,13 @@
     "reservationCancelledSuccessMessage": "Your reservation has been cancelled successfully. A refund will be processed shortly.",
     "ticketsCancelledSuccessMessage": "Selected tickets have been cancelled successfully. A refund will be processed shortly.",
     "alreadyCancelledTitle": "Already Cancelled",
-    "alreadyCancelledMessage": "This reservation or ticket has already been cancelled."
+    "alreadyCancelledMessage": "This reservation or ticket has already been cancelled.",
+    "ok": "OK",
+    "viewPolicy": "View Policy",
+    "hidePolicy": "Hide Policy",
+    "assetsLoading": "Assets are still loading, please try again shortly.",
+    "dataNotLoaded": "Reservation data is not available. Please try again.",
+    "pdfGenerationFailed": "Failed to generate PDF. Please try again."
   },
   "paymentResult": {
     "successTitle": "Payment Successful!",
@@ -293,7 +301,10 @@
     "applepay": "Apple Pay",
     "samsungpay": "Samsung Pay",
     "mada":"Mada",
-    "americanexpress": "American Express"
+    "americanexpress": "American Express",
+    "assetsLoading": "Assets are still loading, please try again shortly.",
+    "dataNotLoaded": "Reservation data is not available. Please try again.",
+    "pdfGenerationFailed": "Failed to generate PDF. Please try again."
   },
   "failedBooking": {
     "headerTitle": "Transaction Details",

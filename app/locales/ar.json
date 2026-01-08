@@ -57,7 +57,9 @@
     "loading": "جاري التحميل",
     "goBack":"الرجوع",
     "copied": "تم النسخ",
-    "copiedToClipboard": "تم النسخ إلى الحافظة"
+    "copiedToClipboard": "تم النسخ إلى الحافظة",
+    "pleaseWait": "الرجاء الانتظار",
+    "retry": "إعادة المحاولة"
   },
   "error": {
     "title": "خطأ"
@@ -231,7 +233,22 @@
     "reservationCancelledSuccessMessage": "تم إلغاء حجزك بنجاح. سيتم معالجة الاسترداد قريبًا.",
     "ticketsCancelledSuccessMessage": "تم إلغاء التذاكر المحددة بنجاح. سيتم معالجة الاسترداد قريبًا.",
     "alreadyCancelledTitle": "تم الإلغاء مسبقًا",
-    "alreadyCancelledMessage": "تم إلغاء هذا الحجز أو التذكرة مسبقًا."
+    "alreadyCancelledMessage": "تم إلغاء هذا الحجز أو التذكرة مسبقًا.",
+        "assetsLoading": "لا تزال أصول التذكرة قيد التحميل، يرجى المحاولة مرة أخرى بعد قليل.",
+    "dataNotLoaded": "بيانات التذكرة غير متاحة. يرجى المحاولة مرة أخرى.",
+    "pdfGenerationFailed": "فشل إنشاء ملف PDF للتذكرة. يرجى المحاولة مرة أخرى.",
+    "loading": "جارٍ تحميل التذكرة...",
+    "error": "خطأ",
+    "goBack": "العودة",
+    "noResults": "لم يتم العثور على تذاكر",
+    "noResultsMessage": "لم نتمكن من العثور على أي تذاكر تطابق معايير البحث الخاصة بك. يرجى التحقق من معلوماتك والمحاولة مرة أخرى.",
+    "searchAgain": "البحث مرة أخرى",
+    "processing": "قيد المعالجة",
+    "ins1Content": "عطور ومشروبات غازية معلبة وأي إلكترونيات.",
+    "ins2Content": "عطور ومشروبات غازية معلبة وأي إلكترونيات.",
+    "ins3Content": "عطور ومشروبات غازية معلبة وأي إلكترونيات.",
+    "ins4Content": "عطور ومشروبات غازية معلبة وأي إلكترونيات.",
+    "ins5Content": "عطور ومشروبات غازية معلبة وأي إلكترونيات."
   },
   "paymentResult": {
     "successTitle": "تم الدفع بنجاح!",
@@ -281,8 +298,10 @@
     "applepay": "Apple Pay",
     "samsungpay": "Samsung Pay",
     "mada":"Mada",
-    "americanexpress": "American Express"
-
+    "americanexpress": "American Express",
+    "assetsLoading": "لا تزال الأصول قيد التحميل، يرجى المحاولة مرة أخرى بعد قليل.",
+    "dataNotLoaded": "بيانات الحجز غير متاحة. يرجى المحاولة مرة أخرى.",
+    "pdfGenerationFailed": "فشل إنشاء ملف PDF. يرجى المحاولة مرة أخرى."
   },
   "failedBooking": {
     "headerTitle": "تفاصيل المعاملة",
