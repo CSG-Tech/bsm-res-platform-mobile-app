@@ -51,11 +51,25 @@ const OTPVerificationModal = ({
       if (visible && !otpGenerated && email && reservationId) {
         setIsGenerating(true);
         try {
-          await sendOTP({
+          const response = await sendOTP({
             reservationId,
             purpose,
             email,
           });
+          
+          // Check if already verified (no expiresAt means already verified)
+          if (!response.expiresAt || response.expiresAt < new Date() || response.alreadyVerified) {
+            Toast.show({ 
+              type: "success", 
+              text1: "Already Verified", 
+              text2: "This action is already verified" 
+            });
+            setTimeout(() => {
+              onSuccess?.();
+              onClose();
+            }, 500);
+            return;
+          }
           
           setOtpGenerated(true);
           Toast.show({ 
@@ -70,9 +84,11 @@ const OTPVerificationModal = ({
             text1: "Failed to send OTP", 
             text2: error.response?.data?.message || "Please try again" 
           });
-          onClose(); // Close modal if OTP generation fails
+          onClose();
         } finally {
+          setTimeout(() => {
           setIsGenerating(false);
+          }, 500);
         }
       }
     };

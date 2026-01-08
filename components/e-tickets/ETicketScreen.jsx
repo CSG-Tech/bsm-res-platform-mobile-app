@@ -659,7 +659,9 @@ const ETicketScreen = () => {
           onSuccess={() => {
             console.log("OTP Success!");
             setShowOTP(false);
-            setShowCancelReservationModal(true);
+            setTimeout(() => {
+              setShowCancelReservationModal(true);
+            }, 500);
           }}
           reservationId={params.reservationNumber || reservationData?.tickets?.[0]?.reservationId}
           purpose="CANCEL_RESERVATION"
@@ -674,10 +676,12 @@ const ETicketScreen = () => {
           onSuccess={() => {
             console.log("OTP Success for ticket cancellation!");
             setShowTicketCancelOTP(false);
-            setShowCancelTicketsModal(true);
+            setTimeout(() => {
+              setShowCancelTicketsModal(true);
+            }, 500);
           }}
           reservationId={params.reservationNumber || reservationData?.tickets?.[0]?.reservationId}
-          purpose="CANCEL_TICKETS"
+          purpose="CANCEL_RESERVATION"
           initialEmail={userEmail}
         />
       )}
