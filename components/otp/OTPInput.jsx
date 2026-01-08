@@ -44,7 +44,7 @@ const OTPInput = ({
       return;
     }
 
-    // Single character input
+    // Single character inputt
     newOtp[index] = text;
     setOtp(newOtp);
     onChangeText(newOtp.join(""));
