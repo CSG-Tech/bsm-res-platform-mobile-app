@@ -79,7 +79,7 @@ const OTPInput = ({
           onChangeText={(text) => handleChange(text, index)}
           onKeyPress={(e) => handleKeyPress(e, index)}
           keyboardType="number-pad"
-          maxLength={1}
+          maxLength={length}
           selectTextOnFocus
           editable={!disabled}
           hasValue={!!digit}
