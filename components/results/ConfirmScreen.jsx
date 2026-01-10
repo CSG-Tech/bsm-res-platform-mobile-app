@@ -21,7 +21,8 @@ import { clearPendingReservation } from '../../axios/storage/reservationStorage'
 import { getTripSummary, getReservationDetails } from '../../axios/services/ticketService';
 import { loadAssetsAsBase64 } from '../../utils/assetUtils';
 import { generateConfirmationHTML } from '../PDFTemplates/ConfirmationPDF';
-import { generateAndSharePDF } from '../../utils/pdfUtils';
+import PDFViewerModal from '../PDFViewerModal';
+import { viewPDF, sharePDF } from '../../utils/pdfUtils';
 
 const DetailCard = ({ title, children }) => (
   <View style={styles.card}>
@@ -77,6 +78,8 @@ const ConfirmationScreen = () => {
   const [error, setError] = useState(null);
   const [assets, setAssets] = useState(null);
   const [assetsLoading, setAssetsLoading] = useState(true);
+  const [showPDFModal, setShowPDFModal] = useState(false);
+  const [currentPDFHtml, setCurrentPDFHtml] = useState(null);
 
   const reservationId = params.reservationId;
 
@@ -207,7 +210,8 @@ const ConfirmationScreen = () => {
         durationHours: duration.hours
       });
 
-      await generateAndSharePDF(html);
+      setCurrentPDFHtml(html);
+      setShowPDFModal(true);
     } catch (err) {
       console.error('Error generating PDF:', err);
       Alert.alert(
@@ -412,6 +416,17 @@ const ConfirmationScreen = () => {
         </View>
       </View>
       <Toast />
+      {showPDFModal && (
+        <PDFViewerModal
+          visible={showPDFModal}
+          onClose={() => setShowPDFModal(false)}
+          htmlContent={currentPDFHtml}
+          onShare={async () => {
+            await sharePDF(currentPDFHtml);
+            setShowPDFModal(false);
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 };

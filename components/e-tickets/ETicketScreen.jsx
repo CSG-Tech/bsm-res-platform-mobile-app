@@ -10,7 +10,6 @@ import {
   LayoutAnimation,
   Modal,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -30,7 +29,9 @@ import CancelTicketsModal from '../modals/CancelTicketsModal';
 import { getReservationEmail } from '../../axios/services/otpService';
 import { loadAssetsAsBase64 } from '../../utils/assetUtils';
 import { generateETicketHTML } from '../PDFTemplates/ETicketPDF';
-import { generateAndSharePDF } from '../../utils/pdfUtils';
+import { viewPDF, sharePDF } from '../../utils/pdfUtils';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import PDFViewerModal from '../PDFViewerModal';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -193,6 +194,8 @@ const ETicketScreen = () => {
   const [userEmail, setUserEmail] = useState("");
   const [assets, setAssets] = useState(null);
   const [assetsLoading, setAssetsLoading] = useState(true);
+  const [showPDFModal, setShowPDFModal] = useState(false);
+  const [currentPDFHtml, setCurrentPDFHtml] = useState(null);
 
   const fetchUserEmail = async () => {
     try {
@@ -332,6 +335,7 @@ const ETicketScreen = () => {
       });
     }
   };
+
   const handleShareAll = async () => {
     if (assetsLoading || !assets) {
       Alert.alert(
@@ -358,7 +362,6 @@ const ETicketScreen = () => {
         return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
       };
 
-      // Build array of all passengers with their data
       const allPassengersData = passengers.map((passenger) => {
         const ticketData = passenger.ticketData;
         
@@ -395,9 +398,10 @@ const ETicketScreen = () => {
         instructionItems: getInstructionItems(t)
       });
       
-      await generateAndSharePDF(html);
+      setCurrentPDFHtml(html);
+      setShowPDFModal(true);
     } catch (err) {
-      console.error('Error generating PDF:', err);
+      console.error('Error generating HTML:', err);
       Alert.alert(
         t('error.title'),
         t('eticket.pdfGenerationFailed'),
@@ -405,6 +409,8 @@ const ETicketScreen = () => {
       );
     }
   };
+
+  // Update handleShareOrDownload
   const handleShareOrDownload = async () => {
     if (assetsLoading || !assets) {
       Alert.alert(
@@ -465,9 +471,10 @@ const ETicketScreen = () => {
         instructionItems: getInstructionItems(t)
       });
 
-      await generateAndSharePDF(html);
+      setCurrentPDFHtml(html);
+      setShowPDFModal(true);
     } catch (err) {
-      console.error('Error generating PDF:', err);
+      console.error('Error generating HTML:', err);
       Alert.alert(
         t('error.title'),
         t('eticket.pdfGenerationFailed'),
@@ -855,6 +862,19 @@ const ETicketScreen = () => {
           reservationId={params.reservationNumber || reservationData?.tickets?.[0]?.reservationId}
         />
       )}
+
+      {showPDFModal && (
+        <PDFViewerModal
+          visible={showPDFModal}
+          onClose={() => setShowPDFModal(false)}
+          htmlContent={currentPDFHtml}
+          onShare={async () => {
+            await sharePDF(currentPDFHtml);
+            setShowPDFModal(false);
+          }}
+        />
+      )}
+
     </SafeAreaView>
   );
 };
