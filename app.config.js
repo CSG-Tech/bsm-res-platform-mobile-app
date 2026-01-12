@@ -15,6 +15,7 @@ export default {
       supportsTablet: true,
       infoPlist: {
         // UIBackgroundModes: ['fetch', 'remote-notification'],
+        NSUserNotificationUsageDescription: "Would you like to receive notifications from Bassam Booking App? This includes booking updates and promotional offers.",
         ITSAppUsesNonExemptEncryption: false,
       },
     },
@@ -24,7 +25,7 @@ export default {
         foregroundImage: './assets/icon.png',
         backgroundColor: '#FFFFFF',
       },
-      permissions: ['android.permission.DETECT_SCREEN_CAPTURE'],
+      permissions: ['android.permission.DETECT_SCREEN_CAPTURE', 'POST_NOTIFICATIONS'],
       package: 'com.bassamshippingsa.bassambooking',
     },
     plugins: [

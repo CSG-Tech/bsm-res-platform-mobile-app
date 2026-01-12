@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useFocusEffect } from 'expo-router';
-// import * as Notifications from 'expo-notifications';
-import Constants from 'expo-constants';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -283,35 +283,48 @@ const BookingScreen = () => {
   }, [classes, i18n.language]);
 
   async function registerForPushNotificationsAsync() {
-    let token;
-    console.log('Registering for push notifications...', Constants.isDevice);
-    if (Constants.isDevice) {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
 
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus !== 'granted') {
-        alert('Failed to get push token for notifications!');
-        return;
-      }
-
-      token = (await Notifications.getExpoPushTokenAsync()).data;
-      console.log('Device token:', token);
-    } else {
-      alert('Must use a physical device for Push Notifications');
-    }
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
+    });
 
     if (Platform.OS === 'android') {
-      Notifications.setNotificationChannelAsync('default', {
+      await Notifications.setNotificationChannelAsync('default', {
         name: 'default',
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#FF231F7C',
       });
+    }
+    let token;
+    console.log('Registering for push notifications...', Device.isDevice);
+    if (Device.isDevice) {
+      try {
+        const permissionResponse = await Notifications.getPermissionsAsync();
+        console.log('Existing permissions:', permissionResponse);
+        let finalStatus = permissionResponse?.status;
+
+        if (finalStatus !== 'granted') {
+          const requestResponse = await Notifications.requestPermissionsAsync();
+          finalStatus = requestResponse?.status;
+        }
+
+        if (finalStatus !== 'granted') {
+          alert('Failed to get push token for notifications!');
+          return;
+        }
+
+        token = (await Notifications.getExpoPushTokenAsync()).data;
+        console.log('Device token:', token);
+      } catch (error) {
+        console.log('Error registering device for notifications:', error);
+      }
+    } else {
+      alert('Must use a physical device for Push Notifications');
     }
 
     return token;
@@ -320,8 +333,8 @@ const BookingScreen = () => {
       const registerDevice = async () => {
       try {
         const deviceId = await getOrCreateDeviceId();
-        // const deviceToken = await registerForPushNotificationsAsync();
-        const deviceToken = ''; // Temporarily disable push notifications
+        const deviceToken = await registerForPushNotificationsAsync();
+        // const deviceToken = ''; // Temporarily disable push notifications
         if (deviceToken) {
           await saveDeviceToken(deviceId, deviceToken);
         }
@@ -373,7 +386,7 @@ const BookingScreen = () => {
           registerDevice(),
         ]);
       };
-      if(hasLoadedRef.current) {
+      if(!hasLoadedRef.current) {
         init();
         hasLoadedRef.current = true;
         return;
