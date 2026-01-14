@@ -10,6 +10,30 @@ export default {
 
     assetBundlePatterns: ['**/*'],
     icon: './assets/icon.png',
+    plugins: [
+      'expo-router',
+      'expo-splash-screen',
+      [
+        'expo-notifications',
+        {
+          "icon": './assets/icon-logo.png',
+          "sounds":[]
+        }
+      ],
+    ],
+    android: {
+      useNextNotificationsApi: true,
+      package: "com.bassamshippingsa.bassambooking",
+      "usesCleartextTraffic": true,
+      "networkSecurityConfig": "./network_security_config.xml",
+      adaptiveIcon: {
+        foregroundImage: './assets/icon.png',
+        backgroundColor: '#FFFFFF',
+      },
+      permissions: ['android.permission.DETECT_SCREEN_CAPTURE', 'POST_NOTIFICATIONS'],
+      package: 'com.bassamshippingsa.bassambooking',
+
+    },
     ios: {
       icon: './assets/icon.png',
       supportsTablet: true,
@@ -18,34 +42,6 @@ export default {
         NSUserNotificationUsageDescription: "Would you like to receive notifications from Bassam Booking App? This includes booking updates and promotional offers.",
         ITSAppUsesNonExemptEncryption: false,
       },
-    },
-
-    android: {
-      adaptiveIcon: {
-        foregroundImage: './assets/icon.png',
-        backgroundColor: '#FFFFFF',
-      },
-      permissions: ['android.permission.DETECT_SCREEN_CAPTURE', 'POST_NOTIFICATIONS'],
-      package: 'com.bassamshippingsa.bassambooking',
-    },
-    plugins: [
-      'expo-router',
-      'expo-splash-screen',
-      [
-        'expo-notifications',
-        {
-          "icon": './assets/icon-logo.png',
-          "color": "#000000"
-        }
-      ],
-    ],
-    android: {
-      useNextNotificationsApi: true,
-      package: "com.bassamshippingsa.bassambooking",
-      "usesCleartextTraffic": true,
-      "networkSecurityConfig": "./network_security_config.xml"
-    },
-    ios: {
       supportsTablet: true,
       bundleIdentifier: "com.bassamshippingsa.bassambooking",
       usesAppleSignIn: true

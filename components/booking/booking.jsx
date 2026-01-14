@@ -309,7 +309,14 @@ const BookingScreen = () => {
         let finalStatus = permissionResponse?.status;
 
         if (finalStatus !== 'granted') {
-          const requestResponse = await Notifications.requestPermissionsAsync();
+          const requestResponse = await Notifications.requestPermissionsAsync({
+             ios: {
+                allowAlert: true,
+                allowBadge: true,
+                allowSound: true,
+              },
+              android: {}
+          });
           finalStatus = requestResponse?.status;
         }
 

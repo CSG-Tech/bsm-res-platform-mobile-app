@@ -275,7 +275,7 @@
   "confirmation": {
     "headerTitle": "Transaction Details",
     "successTitle": "Booking Confirmed",
-    "successMessage": "Thank you for booking with Bassam Shipping. Please take a moment to review your itinerary and e-ticket below. For any assistance or inquiries, please email us at <1>emailaddress@example.com</1> or call us at <3>+201234567890</3>.",
+    "successMessage": "Thank you for booking with Bassam Shipping. Please take a moment to review your itinerary and e-ticket below. For any assistance or inquiries, please email us at <1>customer@bassamshippingsa.com</1> or call us at <3>+201234567890</3>.",
     "vesselName": "Vessel Name",
     "estPrice": "Price",
     "pax": "/pax",
