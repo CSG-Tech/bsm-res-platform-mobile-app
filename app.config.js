@@ -17,7 +17,6 @@ export default {
         'expo-notifications',
         {
           "icon": './assets/icon-logo.png',
-          "sounds":[]
         }
       ],
     ],
@@ -32,7 +31,7 @@ export default {
       },
       permissions: ['android.permission.DETECT_SCREEN_CAPTURE', 'POST_NOTIFICATIONS'],
       package: 'com.bassamshippingsa.bassambooking',
-
+      googleServicesFile: './google-services.json',
     },
     ios: {
       icon: './assets/icon.png',
