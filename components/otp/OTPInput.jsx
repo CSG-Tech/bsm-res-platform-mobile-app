@@ -9,83 +9,53 @@ const OTPInput = ({
   disabled = false,
   hasError = false,
 }) => {
-  const inputRefs = useRef([]);
-  const [otp, setOtp] = useState(Array(length).fill(""));
+  const hiddenInputRef = useRef(null);
+  const [otp, setOtp] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
-    // Update internal state when value prop changes
-    if (value) {
-      setOtp(value.split("").concat(Array(length).fill("")).slice(0, length));
-    } else {
-      setOtp(Array(length).fill(""));
+    if (value !== undefined) {
+      setOtp(value);
     }
-  }, [value, length]);
+  }, [value]);
 
-  const handleChange = (text, index) => {
-    // Only accept numbers
-    if (text && !/^\d+$/.test(text)) return;
-
-    const newOtp = [...otp];
-
-    // Handle paste - if text length > 1, it's a paste
-    if (text.length > 1) {
-      const pastedData = text.slice(0, length).split("");
-      pastedData.forEach((char, i) => {
-        if (index + i < length && /^\d$/.test(char)) {
-          newOtp[index + i] = char;
-        }
-      });
-      setOtp(newOtp);
-      onChangeText(newOtp.join(""));
-
-      // Focus last filled input or last input
-      const lastFilledIndex = Math.min(index + pastedData.length, length - 1);
-      inputRefs.current[lastFilledIndex]?.focus();
-      return;
-    }
-
-    // Single character inputt
-    newOtp[index] = text;
-    setOtp(newOtp);
-    onChangeText(newOtp.join(""));
-
-    // Auto-focus next input
-    if (text && index < length - 1) {
-      inputRefs.current[index + 1]?.focus();
-    }
+  const handleChange = (text) => {
+    // Only accept numbers up to length
+    const cleaned = text.replace(/\D/g, "").slice(0, length);
+    setOtp(cleaned);
+    onChangeText(cleaned);
   };
 
-  const handleKeyPress = (e, index) => {
-    // Handle backspace
-    if (e.nativeEvent.key === "Backspace") {
-      if (!otp[index] && index > 0) {
-        // If current box is empty, go to previous and clear it
-        const newOtp = [...otp];
-        newOtp[index - 1] = "";
-        setOtp(newOtp);
-        onChangeText(newOtp.join(""));
-        inputRefs.current[index - 1]?.focus();
-      }
-    }
+  const handleBoxPress = () => {
+    hiddenInputRef.current?.focus();
   };
+
+  const otpArray = otp.split("").concat(Array(length).fill("")).slice(0, length);
+  const currentPosition = otp.length; // Current cursor position
 
   return (
     <Container>
-      {otp.map((digit, index) => (
+      <HiddenInput
+        ref={hiddenInputRef}
+        value={otp}
+        onChangeText={handleChange}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        keyboardType="number-pad"
+        maxLength={length}
+        editable={!disabled}
+        autoFocus
+      />
+      {otpArray.map((digit, index) => (
         <InputBox
           key={index}
-          ref={(ref) => (inputRefs.current[index] = ref)}
-          value={digit}
-          onChangeText={(text) => handleChange(text, index)}
-          onKeyPress={(e) => handleKeyPress(e, index)}
-          keyboardType="number-pad"
-          maxLength={length}
-          selectTextOnFocus
-          editable={!disabled}
+          onPress={handleBoxPress}
           hasValue={!!digit}
           hasError={hasError}
-          autoFocus={index === 0}
-        />
+          isActive={isFocused && index === currentPosition}
+        >
+          <DigitText hasValue={!!digit}>{digit}</DigitText>
+        </InputBox>
       ))}
     </Container>
   );
@@ -100,16 +70,28 @@ const Container = styled.View`
   gap: 8px;
 `;
 
-const InputBox = styled.TextInput`
+const HiddenInput = styled.TextInput`
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+`;
+
+const InputBox = styled.Pressable`
   width: 48px;
   height: 48px;
   border-radius: 24px;
   border-width: 2px;
-  border-color: ${({ hasError }) => (hasError ? "#EF4444" : "#D1D5DB")};
+  border-color: ${({ hasError, isActive }) =>
+    hasError ? "#EF4444" : isActive ? "#3B82F6" : "#D1D5DB"};
   background-color: #ffffff;
+  justify-content: center;
+  align-items: center;
+`;
+
+const DigitText = styled.Text`
   font-size: 20px;
   font-weight: 600;
-  text-align: center;
   color: #000000;
 `;
 

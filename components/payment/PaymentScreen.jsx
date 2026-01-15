@@ -31,8 +31,7 @@ import MadaLogo from '../../assets/images/paymentImages/mada.svg';
 import StcBankLogo from '../../assets/images/paymentImages/stc_bank.svg';
 import ApplePayLogo from '../../assets/images/paymentImages/apple_pay.svg';
 import SamsungPayLogo from '../../assets/images/paymentImages/samsung_pay.svg';
-
-
+import { OTPVerificationModal } from '../otp';
 // --- Static Data: Countries ---
 const countries = [
   { id: 'eg', code: '+20', name: 'Egypt', flag: 'https://flagcdn.com/w40/eg.png' },
@@ -92,7 +91,7 @@ const PaymentScreen = () => {
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('creditcard'); // default
   const [initialDataLoaded, setInitialDataLoaded] = useState(false); 
-
+  const [showEmailVerificationOTP, setShowEmailVerificationOTP] = useState(false);
   const countryButtonRef = useRef(null);
 
   useEffect(() => {
@@ -101,7 +100,7 @@ const PaymentScreen = () => {
       if (existingReservationId) {
         try {
           const status = await getReservationStatus(existingReservationId);
-          if (status.status === 'PAID' || status.status === 'AUTHORIZED') {
+          if (status.status === 'PAID' || status.status === 'AUTHORIZED' || status.status === 'ISSUED' || status.status === 'CANCELLED' || status.status === 'PARTIALLY_CANCELLED' || status.status === 'REFUNDED' || status.status === 'PARTIALLY_REFUNDED') {
             router.replace(`/confirmation/${existingReservationId}`);
           } else if (status.status === 'PROCESSING' && !status.paymentIntent) {
             // Allow cancel
@@ -433,7 +432,7 @@ const [payment, setPayment] = useState('visa');
 
           <TouchableOpacity 
             style={[styles.confirmButton, submitting && styles.confirmButtonDisabled]} 
-            onPress={handleConfirmPayment}
+            onPress={() => {setShowEmailVerificationOTP(true)}}
             disabled={submitting}
           >
             {submitting ? (
@@ -499,6 +498,19 @@ const [payment, setPayment] = useState('visa');
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+      {showEmailVerificationOTP && (
+        <OTPVerificationModal
+          visible={showEmailVerificationOTP}
+          onClose={() => setShowEmailVerificationOTP(false)}
+          onSuccess={() => {
+            setShowEmailVerificationOTP(false);
+            setTimeout(handleConfirmPayment, 500);
+          }}
+          reservationId={params.reservationId}
+          purpose="RESERVATION_EMAIL"
+          initialEmail={email}
+        />
+      )}
 
     </SafeAreaView>
   );
