@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "572429435338",
+    "project_id": "bassam-booking",
+    "storage_bucket": "bassam-booking.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:572429435338:android:8c380754d0b3145ea24f33",
+        "android_client_info": {
+          "package_name": "com.bassamshippingsa.bassambooking"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSDm7UPAzAd-GT1y9s0IdcWfAQrfp-8SU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
